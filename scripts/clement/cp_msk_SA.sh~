@@ -1,0 +1,13 @@
+fs_dir=/home/fatmike/Protocoles_3T/Strokdem/Shape_Analysis/TMem_TCNTM/hpg
+sd=/home/fatmike/Protocoles_3T/Strokdem/Shape_Analysis/TCog_NTCog/hpg
+
+for subj in 260409RD300403PP 310317GD 310501VH 340303JV 380614FS 430109MD 440410FM 440718YT 441111MC 460415FM 470101MT 480221GR 490409YS 520214ML 521029PB 561020LA 610415JD
+
+do
+
+echo "cp $sd/TC_${subj}M6_hpg.nii $fs_dir/${subj}M6_hpg.nii"
+
+cp $sd/TC_${subj}M6_hpg.nii $fs_dir/TCNTM_${subj}M6_hpg.nii
+
+done
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+qbatch -q U1404 -oe /home/julien/log/ -N rst_${1} FMRI_PreprocessingVolumeAndSurface.sh -sd /NAS/dumbo/protocoles/T1_test_FS/U1404_data2/${1}/ -subj ${1} -epi /NAS/dumbo/protocoles/T1_test_FS/data2/${1}/epi.nii -o rsfmri -fwhmsurf 6 -fwhmvol 6 -acquis interleaved -rmframe 3 -tr 2.4 -doCompCor -doFilt 0.008 0.1 -doSPMNorm -doANTSNorm -doGMS -doSeg -v 5.3
+

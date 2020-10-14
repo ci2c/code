@@ -1,0 +1,294 @@
+#!/bin/bash
+export LC_CTYPE=C
+export LANG=C
+
+# require dcm2nii
+# require dcmdump 
+# require dcmftest
+# require dcm4chee tool : emf2sf
+
+if [ $# -lt 3 ]
+then
+echo "Usage:  dti2iso.sh  -i <input par file>"
+echo "	-i		: input par file"
+echo "	-o		: output ISO file"
+echo "	-s		: subject name : output/ISO_subject.nii.gz"
+echo "			: if empty subject = get the Patient name in par or dicom file"
+echo " 			: if 'file' keep input filename"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Feb , 2015"
+echo ""
+exit 1
+fi
+
+index=1
+
+while [ $index -le $# ]
+do
+eval arg=\${$index}
+case "$arg" in
+-h|-help)
+echo ""
+echo "Usage:  dti2iso.sh  -i <input par file>"
+echo "	-i		: input par file"
+echo "	-o		: output ISO file"
+echo "	-s		: subject name : output/ISO_subject.nii.gz"
+echo "			: if empty subject = get the Patient name in par or dicom file"
+echo " 			: if 'file' keep input filename"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Feb , 2015"
+echo ""
+echo ""
+exit 1
+;;
+-i)
+index=$[$index+1]
+eval input=\${$index}
+;;
+-o)
+index=$[$index+1]
+eval output=\${$index}
+;;
+-s)
+index=$[$index+1]
+eval subject=\${$index}
+;;
+-*)
+eval infile=\${$index}
+echo "${infile} : unknown option"
+echo ""
+echo "Usage:  dti2iso.sh  -i <input par file>"
+echo "	-i		: input par file"
+echo "	-o		: output ISO file"
+echo "	-s		: subject name : output/ISO_subject.nii.gz"
+echo "			: if empty subject = get the Patient name in par or dicom file"
+echo " 			: if 'file' keep input filename"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Feb , 2015"
+echo ""
+echo ""
+exit 1
+;;
+esac
+index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${input} ]
+then
+echo "-i argument mandatory"
+exit 1
+fi
+if [ -z ${output} ]
+then
+echo "-o argument mandatory"
+exit 1
+fi
+
+
+
+
+
+
+echo -e "\e[31m
+=================== dti2iso ========================\e[0m"
+
+# force to use this dcm2nii version 
+dcm2nii=/home/global/mricron062013/
+
+par_file=${input}
+
+if [ ! -d "$output" ]
+then
+	echo "No existing Output folder"
+	exit 1
+
+fi 
+
+
+if [ -f  ${par_file} ]
+then
+
+# build temp folder
+par_path=$(dirname ${par_file})
+par_base=$(basename ${par_file})
+echo -e "\e[32mpath : \e[0m${par_path}"
+par_base=${par_base%.*}
+echo -e "\e[32mpar file without ext : \e[0m${par_base}"
+tmp_folder=${par_path}/tmp_${par_base}/
+echo -e "\e[32mtemp folder :\e[0m ${tmp_folder}"
+echo -e "\e[32moutput folder : \e[0m$output"
+
+
+nii_dir="${tmp_folder}/nii/"
+mkdir -p ${nii_dir}
+
+
+
+#Detecting format
+is_par=$(sed -n '/= DATA DESCRIPTION FILE =/=' ${par_file})
+if [ "${is_par}" = "1" ]
+then
+type="par"
+dcm2nii_every_image="-v n"
+echo -e "\e[32mformat : \e[0m${type}"
+else
+	test_dicom=$(dcmftest ${par_file} | cut -c1)
+	if [ "${test_dicom}" == "y" ]
+	then
+		type="dicom"
+		dcm2nii_every_image="-v y"
+		# checking if multiframe
+		nb_frame=$(dcmdump -M +P "0028,0008" ${par_file} | sed -e 's/.*\[\(.*\)\].*/\1/')		
+		type="dicom"		
+		if [ "${nb_frame}" != "" ]
+		then
+			echo -e "\e[32mformat : \e[0myour dicom is a multiframe ... find ${nb_frame} frames"	
+			/home/global/dcm4che-3.3.0/bin/emf2sf --out-dir ${tmp_folder}/nii/  --out-file IM_dti_ ${par_file}
+			#rm -f ${par_file}
+			par_file="${tmp_folder}/nii/IM_dti_1"
+		else
+			echo -e "\e[32mformat : \e[0m${type}"		
+		fi
+		
+
+	else
+		echo "Your input is not a par or a dicom file"
+		exit 1
+	fi
+fi
+
+
+if [ -z ${subject} ]
+then	
+	if [ "${type}" == "par" ]
+	then
+		patient_name=$(awk "/Patient name/" ${par_file})
+		patient_name=$( echo "${patient_name#*:}" | xargs | sed -e 's/[^a-zA-Z0-9|\^]*//g')
+	else
+		patient_name=$(dcmdump -M +P "0010,0010" ${par_file} | sed -e 's/.*\[\(.*\)\].*/\1/' | sed 's#[ /.*()]#_#g')
+	fi
+	 
+else
+	
+	patient_name=$( echo "${subject}" | xargs | sed -e 's#[ /(),.?]#_#g')
+		
+fi
+
+aff_patient_name=$(echo "${patient_name}")
+
+if [ "${subject}" == "file" ]
+then
+	aff_patient_name="Keeping filename ... ${par_base}"
+fi
+
+
+echo -e "\e[32mpatient name : \e[0m${aff_patient_name}"
+echo -e "\e[31m====================================================\e[0m"
+
+
+
+#convert & split data
+echo "Converting ..."
+${dcm2nii}dcm2nii -f n -g y -r n -x n ${dcm2nii_every_image} -o ${tmp_folder}/nii ${par_file}
+mv ${tmp_folder}/nii/*.nii.gz ${tmp_folder}/nii/dti.nii.gz
+
+rm -f ${tmp_folder}/nii/IM_dti*
+
+echo "Spliting ..."
+fslsplit ${tmp_folder}/nii/dti.nii.gz ${tmp_folder}/nii/my_temp_vol -t
+rm -f ${tmp_folder}/nii/dti.nii.gz
+
+if [ "${type}" == "par" ]
+then
+
+	# extracting b0 & bMean
+	echo "Extracting bo & bMean ..."
+	debut=$(($(sed -n '/= IMAGE INFORMATION =/=' ${par_file}) + 3 ))
+	fin=$(($(sed -n '/# === END OF DATA DESCRIPTION FILE =/=' ${par_file}) - 2 ))
+	sed -n ${debut},${fin}p ${par_file} | sed "s/\ \ */\;/g" > ${tmp_folder}/${par_base}.csv
+	max_slice_loc=$(awk "/location/" ${par_file} | sed -e 's/[^0-9]*//g')
+	echo "Max slice Loc : ${max_slice_loc}" 
+	b_val=$(awk -F ";" '{print $35}' ${tmp_folder}/${par_base}.csv | sed -n '1~'"${max_slice_loc}"'p') 
+	b_vec1=$(awk -F ";" '{print $47}' ${tmp_folder}/${par_base}.csv | sed -n '1~'"${max_slice_loc}"'p')
+	b_vec2=$(awk -F ";" '{print $48}' ${tmp_folder}/${par_base}.csv | sed -n '1~'"${max_slice_loc}"'p')
+	b_vec3=$(awk -F ";" '{print $49}' ${tmp_folder}/${par_base}.csv | sed -n '1~'"${max_slice_loc}"'p')
+
+else
+	# bvec & bval files are created by dcm2nii 
+	b_val=$(head -1 ${tmp_folder}/nii/*.bval | sed -e "s/ /\n/g") 
+	b_vec1=$(head -1 ${tmp_folder}/nii/*.bvec | sed -e "s/ /\n/g")
+	b_vec2=$(head -2 ${tmp_folder}/nii/*.bvec | sed -e "s/ /\n/g")
+	b_vec3=$(head -3 ${tmp_folder}/nii/*.bvec | sed -e "s/ /\n/g")
+	
+	rm -f ${tmp_folder}/nii/*.bval
+	rm -f ${tmp_folder}/nii/*.bvec
+
+
+fi
+
+
+
+
+	printf "Scanning direction ... "
+	nb_dyn=$(ls  ${tmp_folder}/nii/ | wc -l)
+	printf "find ${nb_dyn} dyn
+"
+
+
+format="\e[34m|%3s | %7s | %7s | %7s | %7s | %4s | \n\e[0m"
+format2="\e[34m|\e[0m%3s \e[34m|\e[0m %7s \e[34m|\e[0m %7s \e[34m|\e[0m %7s \e[34m|\e[0m %7s \e[34m|\e[0m \e[31m%4s\e[0m \e[34m|\e[0m \n"
+printf "\e[34m+====+=========+=========+=========+=========+======+ \n\e[0m"
+printf "${format}" "Dyn" "bval" "X" "Y" "Z" "info"
+printf "\e[34m+====+=========+=========+=========+=========+======+ \n\e[0m"
+
+
+for (( i=1; i<=$nb_dyn; i++ ))
+do
+	c_b_val=$(echo "${b_val}" | sed -n ''"$i"'p')
+	c_b_vec1=$(echo "${b_vec1}" | sed -n ''"$i"'p')
+	c_b_vec2=$(echo "${b_vec2}" | sed -n ''"$i"'p')
+	c_b_vec3=$(echo "${b_vec3}" | sed -n ''"$i"'p')
+	c_b_vec=$(echo "${c_b_vec1}${c_b_vec2}${c_b_vec3}")
+
+
+	if [ "${c_b_vec}" == "000" ]||[ "${c_b_vec}" == "0.0000.0000.000" ]
+	then
+		if [ "${c_b_val}" == "0" ]||[ "${c_b_val}" == "0.00" ]
+		then
+			printf "${format2}" "${i}" "$c_b_val" "${c_b_vec1:0:6}" "${c_b_vec2:0:6}" "${c_b_vec3:0:6}" "B0"
+		else
+			printf "${format2}" "${i}" "$c_b_val" "${c_b_vec1:0:6}" "${c_b_vec2:0:6}" "${c_b_vec3:0:6}" "ISO"
+
+		fi
+	rm -f ${tmp_folder}/nii/*$((${i} - 1)).nii.gz
+	else
+		printf "${format2}" "${i}" "$c_b_val" "${c_b_vec1:0:6}" "${c_b_vec2:0:6}" "${c_b_vec3:0:6}" ""
+	fi	
+done
+printf "\e[34m+====+=========+=========+=========+=========+======+ \n\e[0m"
+
+#Merge data without b0 et bmean
+echo "Merging data ..."
+fslmerge -t ${tmp_folder}/nii/temp ${tmp_folder}/nii/my_temp_vol*.nii.gz
+rm -f ${tmp_folder}/nii/my_temp_vol*.nii.gz
+#Mean direction
+echo "Mean direction ..."
+fslmaths ${tmp_folder}/nii/temp.nii.gz -Tmean ${tmp_folder}/nii/ISO_${par_base}
+#delete temp
+if [ "${subject}" == "file" ]
+	then
+		rename="ISO_${par_base}"	
+	else
+		rename="ISO_${patient_name}.nii.gz"
+	fi
+mv ${tmp_folder}/nii/ISO_${par_base}.nii.gz ${output}/${rename}
+rm -rf ${tmp_folder}/
+echo -e "\e[31mFinished\e[0m"
+
+else
+echo "No par file"
+
+fi
+
+

@@ -1,0 +1,169 @@
+#!/bin/bash
+
+if [ $# -lt 2 ]
+then
+	echo "Usage: qbatch [options] command_line"
+	echo ""
+	echo "  options :"
+	echo "    -N  <name>         : job_name (default STDIN)"
+	echo "    -q  <queue>        : queue name (default fs_q)"
+	echo "    -oe <directory>    : log directory (default ${HOME})"
+	echo "    -a  <date>         : start date : MMDDhhmm (default now)"
+	echo "    -j  <jid>          : place a hold on this task until job jid has completed"
+	echo "                         <jid> can be a list of job ids jid1,jid2,jid3,...,jidN"
+	echo "    -A <account>       : Account name to charge the job on"
+	echo "    -pe <slots number> : slots number for the job"
+	echo "    -mem               : required memory (ex: 2G)"
+	echo " "
+	echo "  command_line      :  Command line to execute"
+	exit 1
+fi
+
+# Get arguments
+index=1
+N="STDIN"
+q="fs_q"
+oe=${HOME}
+l_index=1
+a=""
+jid=" "
+A=" "
+pe=" "
+while [ $index -le 9 ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo "Usage: qbatch [options] command_line"
+		echo ""
+		echo "  options :"
+		echo "    -N  <name>         : job_name (default STDIN)"
+		echo "    -q  <queue>        : queue name (default fs_q)"
+		echo "    -oe <directory>    : log directory (default ${HOME})"
+		echo "    -a  <date>         : start date : MMDDhhmm (default now)"
+		echo "    -j  <jid>          : place a hold on this task until job jid has completed"
+		echo "                         <jid> can be a list of job ids jid1,jid2,jid3,...,jidN"
+		echo "    -A <account>       : Account name to charge the job on"
+		echo "    -pe <slots number> : slots number for the job" 
+		echo "    -mem               : required memory (ex: 2G)"
+		echo " "
+		echo "  command_line      :  Command line to execute"
+		exit 1
+		;;
+	-N)
+		N=`expr $index + 1`
+		eval N=\${$N}
+		# echo "  |-------> N : $N"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-q)
+		q=`expr $index + 1`
+		eval q=\${$q}
+		# echo "  |-------> q : ${q}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-oe)
+		oe=`expr $index + 1`
+		eval oe=\${$oe}
+		# echo "  |-------> oe : ${oe}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-a)
+		a=`expr $index + 1`
+		eval a=\${$a}
+		# echo "  |-------> a : ${a}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-j)
+		jid=`expr $index + 1`
+		eval jid=\${$jid}
+		jid="-hold_jid $jid"
+		# echo "  |-------> jid : ${jid}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-pe)
+		pe=`expr $index + 1`
+		eval pe=\${$pe}
+		pe="-pe pe_all ${pe}"
+		# echo "  |-------> pe : ${pe}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-mem)
+		mem=`expr $index + 1`
+		eval mem=\${$mem}
+		mem="-l mem_free=${mem},h_vmem=${mem} "
+		# echo "  |-------> pe : ${pe}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-A)
+		A=`expr $index + 1`
+		eval A=\${$A}
+		# echo "  |-------> q : ${q}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	esac
+	index=$[$index+1]
+done
+
+# Get command lin
+l_command=""
+l_sep=""
+while [ ${l_index} -le $# ]; do
+	eval arg=\${$l_index}
+	l_command="${l_command}${l_sep}${arg}"
+	l_sep=" "
+	l_index=$[${l_index}+1]
+done
+
+v=$RANDOM
+w=$RANDOM
+fileJob=/tmp/sge_job_${v}_${w}.sh
+while [ -f ${fileJob} ]; do
+	v=$RANDOM
+	w=$RANDOM
+	fileJob=/tmp/sge_job_${v}_${w}.sh
+done
+
+echo "#!/bin/bash" > ${fileJob}
+echo " " >> ${fileJob}
+echo ". ~/SVN/bash_profile" >> ${fileJob}
+echo "echo execution time : \`date\`" >> ${fileJob}
+echo "echo running on \${HOSTNAME}" >> ${fileJob}
+echo ${l_command} >> ${fileJob}
+echo "touch ${oe}/${N}.finished" >> ${fileJob}
+chmod 777 ${fileJob}
+
+
+#echo "qsub -N ${N} -q ${q} ${mem} -o ${oe} -e ${oe} ${pe} ${jid} ${A} ${fileJob}"
+
+if [ -z "${a}" ]
+then
+#-pe pe_all 8
+	qsub -N ${N} -q ${q} ${mem} -o ${oe} -e ${oe} ${pe} ${jid} ${A} ${fileJob}
+else
+	qsub -N ${N} -q ${q} ${mem} -o ${oe} -e ${oe} ${pe} -a ${a} ${A} ${fileJob}
+fi
+
+#echo "#!/bin/bash" > /tmp/sge_job_$$.sh
+#echo " " >> /tmp/sge_job_$$.sh
+#echo ". ~/SVN/bash_profile" >> /tmp/sge_job_$$.sh
+#echo "echo execution time : \`date\`" >>/tmp/sge_job_$$.sh
+#echo "echo running on \${HOSTNAME}" >>/tmp/sge_job_$$.sh
+#echo ${l_command} >> /tmp/sge_job_$$.sh
+#echo "touch ${oe}/${N}.finished" >> /tmp/sge_job_$$.sh
+#chmod 777 /tmp/sge_job_$$.sh
+
+#if [ -z "${a}" ]
+#then
+#	qsub -N ${N} -q ${q} -o ${oe} -e ${oe} ${jid} ${A} /tmp/sge_job_$$.sh
+#else
+#	qsub -N ${N} -q ${q} -o ${oe} -e ${oe} ${jid} -a ${a} ${A} /tmp/sge_job_$$.sh
+#fi

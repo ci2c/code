@@ -1,0 +1,100 @@
+#!/bin/bash
+
+
+
+analyse_folder=$1
+echo "Start to analyse folder : ${analyse_folder}
+"
+
+cd ${analyse_folder}
+
+for date in $(ls -d *)
+do
+
+printf "**  DATE :  ${date}\n"
+
+
+
+year=$(date -d "${date}" +%Y)
+date_temp=$(date -d "${date}" +%Y-%m-%d)
+
+
+
+
+
+cd ${analyse_folder}${date}/
+
+for patient in $(ls -d *)
+	do
+
+printf "     |_ Patient ::: ${patient} \n"
+
+		cd ${analyse_folder}${date}/${patient}/
+
+		
+
+		for study in $(ls -d *)
+		do
+
+		
+
+		#/usr/bin/php -f /var/www/imvdb/dcm_manager/log2db.php ${destination}${date_temp}/${patient}/${study}/
+
+			printf "           |_Study ::::  ${study} \n"			
+			
+			
+			cp ${analyse_folder}${date}/${patient}/${study}/patient.log /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/
+			cp ${analyse_folder}${date}/${patient}/${study}/study.log /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/
+			
+			/usr/bin/php -f /var/www/imvdb/dcm_manager/log2db.php /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/
+			#sudo rm -rf  ${analyse_folder}/${patient}/${study}/._*
+			
+			for archive in $(find -name "*.checksum")
+			do
+			sequence_basename=$(echo ${archive} | cut -d "/" -f2 | cut -d "." -f1)
+			
+			cd ${analyse_folder}${date}/${patient}/${study}
+
+printf "                 |_ ${archive} \n"
+
+
+			#test_archive=$(md5sum -c ${archive} | sed 's/.*\(..\)$/\1/')			
+			sequence_basename=$(echo ${archive} | cut -d "/" -f3 | cut -d "." -f1)
+			
+			printf "                              |_ ${sequence_basename} : "
+			#sudo rm -f  ${analyse_folder}/${patient}/${study}/._${sequence_basename}.checksum
+						
+			test_archive=$(md5sum -c ${sequence_basename}.checksum | sed 's/.*\(..\)$/\1/')
+			echo "${sequence_basename} : integrity ${test_archive}"
+
+			if  [ "${test_archive}" == "OK" ]
+			then
+
+				mkdir -p /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/
+				cp ${analyse_folder}${date}/${patient}/${study}/${sequence_basename}.* /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/
+			#	echo "cp"
+				/usr/bin/php -f /var/www/imvdb/dcm_manager/serie2db.php  /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/ ${sequence_basename}
+				
+
+			else
+				printf "   |_ Error with archive ${sequence_basename}.tar.bz2 : writte to the log file \n"
+				touch /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/error.log
+				echo "md5 check integrity failed on : /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/${sequence_basename}.tar.bz2" >> /NAS/DICOMDB/${year}/${date_temp}/${patient}/${study}/error.log
+				
+				
+				
+			fi
+			
+		
+			done # archive			
+			
+	
+	done #study
+
+ 
+
+
+done  # patient
+
+done # date
+

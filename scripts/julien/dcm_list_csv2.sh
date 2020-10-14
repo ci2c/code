@@ -1,0 +1,62 @@
+#!/bin/bash
+
+
+export LC_CTYPE=C
+export LANG=C
+dcmdump_path='dcmdump'
+
+input=$1
+
+
+cd ${input}	
+
+touch /tmp/centre.csv
+echo "Patient;Date;Modality;Study;Serie;nb fichier DICOM;source;Thickness;TR;TE;GAP;MAT" >> /tmp/centre.csv
+
+for date in $(ls -d *)
+do
+
+
+	cd ${input}/${date}/
+	for patient in $(ls -d *)
+	do
+	 cd ${input}/${date}/${patient}
+		modality="MR"
+		#for modality in $(ls -d *)
+		#do
+		 #cd ${input}/${date}/${patient}/${modality}/
+			for study in $(ls -d *)
+			do
+		 	 cd ${input}/${date}/${patient}/${study}/
+				for serie in $(ls -d *)
+				do
+					
+					if [ -d ${serie} ]
+			   		then
+					cd ${input}/${date}/${patient}/${study}/${serie}
+					first_dcm=`find -name "IM*"  | head -1`
+					info_dicom=$(${dcmdump_path} -M +P "0018,0050" +P "0018,0080" +P "0018,0081" +P "0018,0088" +P "0018,1310" ${first_dcm} | sed -e 's/.*\[\(.*\)\].*/\1/')
+					SerieStck=$(echo "${info_dicom}" | sed -n 1p | sed 's/ /_/g')
+					SerieTR=$(echo "${info_dicom}" | sed -n 2p | sed 's/ /_/g')
+					SerieTE=$(echo "${info_dicom}" | sed -n 3p | sed 's/ /_/g')
+					SerieGAP=$(echo "${info_dicom}" | sed -n 4p | sed 's/ /_/g')
+					SerieMat=$(echo "${info_dicom}" | sed -n 5p | sed 's/ /_/g')
+
+					cd ${input}/${date}/${patient}/${study}/
+
+
+					source=`sed -n 1p ${input}/${date}/${patient}/${study}/${serie}.log`
+					nb=$(find  ${input}/${date}/${patient}/${study}/${serie} -name "*" -type f | wc -l)	
+					echo "Adding ... ${patient};${date};${modality};${study};${serie};${nb}"
+					echo "${patient};${date};${modality};${study};${serie};${nb};${source};${SerieStck};${SerieTR};${SerieTE};${SerieGAP};${SerieMat}" >> /tmp/centre.csv
+					fi
+				done
+			done
+		#done
+
+	done		 
+
+
+done
+
+mv /tmp/centre.csv ${input}/

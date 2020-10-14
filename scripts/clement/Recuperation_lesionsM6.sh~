@@ -1,0 +1,20 @@
+#!/bin/bash
+
+Dir='/home/fatmike/Protocoles_3T/Strokdem/Lesions/M6'
+Inp='/home/fatmike/Protocoles_3T/Strokdem/T1_strokdem'
+
+for d in $Inp/*_M6
+do
+	subj=`basename $d`
+	echo $d
+	echo $subj
+	if [ -d $d ]
+	then	
+		f=`ls $d/l$subj*.nii*`
+		echo $f
+
+	fi
+
+done
+
+

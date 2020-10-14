@@ -1,0 +1,131 @@
+#!/bin/bash
+
+dcmdump_path="";
+
+
+
+export LC_CTYPE=C
+export LANG=C
+
+echo "
+********************************************************************
+**            Rename DCM file              By J.Dumont            **
+********************************************************************
+"
+
+
+
+if [ $# -lt 2 ]
+then
+echo "Usage:  dcm_renamer.sh  -i <input folder> -o <output folder>"
+echo "  -i                         : input folder"
+echo "  -o                         : output folder "
+echo "Usage:  dcm_renamer.sh  -i <input folder> -o <output folder>"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Jul , 2014"
+echo ""
+exit 1
+fi
+
+index=1
+
+while [ $index -le $# ]
+do
+eval arg=\${$index}
+case "$arg" in
+-h|-help)
+echo ""
+echo "Usage:  dcm_renamer.sh  -i <input folder> -o <output folder>"
+echo "  -i                         : input folder"
+echo "  -o                         : output folder "
+echo "Usage:  dcm_renamer.sh  -i <input folder> -o <output folder>"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Jul , 2014"
+echo ""
+exit 1
+;;
+-i)
+index=$[$index+1]
+eval input=\${$index}
+echo "input folder : ${input}"
+;;
+-o)
+index=$[$index+1]
+eval output=\${$index}
+echo "output folder : ${output}"
+;;
+-*)
+eval infile=\${$index}
+echo "${infile} : unknown option"
+echo ""
+echo "Usage:  dcm_renamer.sh  -i <input folder> -o <output folder>"
+echo "  -i                         : input folder"
+echo "  -o                         : output folder "
+echo "Usage:  dcm_renamer.sh  -i <input folder> -o <output folder>"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Jul , 2014"
+echo ""
+exit 1
+;;
+esac
+index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${input} ]
+then
+echo "-i argument mandatory"
+exit 1
+fi
+
+if [ -z ${output} ]
+then
+echo "-o argument mandatory"
+exit 1
+fi
+
+
+# Le nom patient et le nom d'examen se test sur le premier fichier dicom
+# pour ne pas relire l'info sur chaque fichier
+# pas de source d'erreur ETIAM a déjà classé par examen/patient
+
+first_dicom = `find -name "*dcm"  | head -1`
+
+
+
+
+
+# Pour chaque multiframe
+for dcm in $(find -name "*dcm")
+do
+
+
+
+#echo "******************* Run on  ${dcm} *************************"
+
+# test si le fichier est un dicom
+
+#test_dicom=$(dcmdump -M ${dcm} | sed -n '/# Dicom-File-Format/p')
+#current_date=$(${dcmdump_path}dcmdump -M +P "0008,0020" ${dcm} | sed -e 's/.*\[\(.*\)\].*/\1/'| sed 's/ /_/g')
+#current_patient_name=$(${dcmdump_path}dcmdump -M +P "0010,0010" ${dcm} | sed -e 's/.*\[\(.*\)\].*/\1/'| sed 's/ /_/g')
+
+#if [ "${test_dicom}" == "# Dicom-File-Format" ]
+#then
+
+#current_serie_description=$(${dcmdump_path}dcmdump -M +P "0008,103e" ${dcm} | sed -e 's/.*\[\(.*\)\].*/\1/'| sed 's/ /_/g')#
+#current_serie_number=$(${dcmdump_path}dcmdump -M +P "0020,0011" ${dcm} | sed -e 's/.*\[\(.*\)\].*/\1/'| sed 's/ /_/g')
+#current_slice_number=$(${dcmdump_path}dcmdump -M +P "0020,0013" ${dcm} | sed -n '2p' | sed -e 's/.*\[\(.*\)\].*/\1/'| sed 's/ /_/g')
+#current_study=$(${dcmdump_path}dcmdump -M +P "0008,1030" ${dcm} | sed -e 's/.*\[\(.*\)\].*/\1/'| sed 's/ /_/g')
+
+#mkdir -p ${output}${current_study}
+
+#echo "${current_date}_${current_patient_name}_${current_serie_description}_Se_${current_serie_number}_Im_${current_slice_number}"
+#cp ${input}${dcm} ${output}${current_study}/${current_date}_${current_patient_name}_${current_serie_description}_Se_${current_serie_number}_Im_#${current_slice_number}
+
+
+
+
+
+fi
+
+done

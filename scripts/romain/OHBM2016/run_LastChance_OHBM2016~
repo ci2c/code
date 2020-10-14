@@ -1,0 +1,13 @@
+#!/bin/bash
+FILE_PATH=$1
+FS_PATH="/NAS/dumbo/HBC/Freesurfer5.0/"
+DATA_PATH="/NAS/dumbo/HBC/raw_data/"
+
+if [ -s ${FILE_PATH}/cohorteHCP.txt ]
+then	
+	while read SUBJECT_ID
+	do
+	qbatch -q one_job_q -oe /NAS/dumbo/romain/log -N OHBM_${SUBJECT_ID} /home/romain/SVN/scripts/romain/LastChance_OHBM2016 ${FS_PATH} ${SUBJECT_ID} ${DATA_PATH}
+	sleep 5
+	done < ${FILE_PATH}/cohorteHCP.txt
+fi

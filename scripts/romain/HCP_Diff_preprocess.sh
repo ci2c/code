@@ -1,0 +1,18 @@
+#!/bin/bash
+
+export HCPPIPEDIR="/NAS/tupac/renaud/HCP/scripts/Pipelines-3.14.1/"
+export HCPPIPEDIR_dMRI="${HCPPIPEDIR}/DiffusionPreprocessing/scripts"
+
+envscr=/NAS/tupac/renaud/HCP/scripts/Pipelines-3.14.1/Examples/Scripts/SetUpHCPPipeline.sh
+source ${envscr} 
+
+RawDataDir="/NAS/dumbo/romain/" 
+SubjectID="100307" 
+
+PosData="${RawDataDir}/${SubjectID}/unprocessed/3T/Diffusion/${SubjectID}_3T_DWI_dir95_RL.nii.gz@${RawDataDir}/${SubjectID}/unprocessed/3T/Diffusion/${SubjectID}_3T_DWI_dir96_RL.nii.gz@${RawDataDir}/${SubjectID}/unprocessed/3T/Diffusion/${SubjectID}_3T_DWI_dir97_RL.nii.gz"  
+
+NegData="${RawDataDir}/${SubjectID}/unprocessed/3T/Diffusion/${SubjectID}_3T_DWI_dir95_LR.nii.gz@${RawDataDir}/${SubjectID}/unprocessed/3T/Diffusion/${SubjectID}_3T_DWI_dir96_LR.nii.gz@${RawDataDir}/${SubjectID}/unprocessed/3T/Diffusion/${SubjectID}_3T_DWI_dir97_LR.nii.gz" 
+
+cd /NAS/tupac/renaud/HCP/scripts/Pipelines-3.14.1/DiffusionPreprocessing/
+
+./DiffPreprocPipeline.sh --posData=${PosData} --negData="${NegData}" --path=${RawDataDir} --subject=${SubjectID} --PEdir=1 --echospacing="0.78" --gdcoeffs="NONE" # --printcom="echo" 

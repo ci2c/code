@@ -1,0 +1,97 @@
+#! /bin/bash
+
+if [ $# -lt 6 ]
+then
+	echo ""
+	echo "Usage: FMRI_PrepForSubCortRegBySPM12.sh  -sd <path>  -epi <file>  -tr <value> "
+	echo ""
+	echo "  -sd                           : subject's directory "
+	echo "  -epi                          : epi file "
+	echo "  -tr                           : TR value "
+	echo ""
+	echo "Usage: FMRI_PrepForSubCortRegBySPM12.sh  -sd <path>  -epi <file>  -tr <value> "
+	echo ""
+	exit 1
+fi
+
+index=1
+TR=2
+remframe=4
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: FMRI_PrepForSubCortRegBySPM12.sh  -sd <path>  -epi <file>  -tr <value> "
+		echo ""
+		echo "  -sd                           : subject's directory "
+		echo "  -epi                          : epi file "
+		echo "  -tr                           : TR value "
+		echo ""
+		echo "Usage: FMRI_PrepForSubCortRegBySPM12.sh  -sd <path>  -epi <file>  -tr <value> "
+		echo ""
+		exit 1
+		;;
+	-sd)
+		index=$[$index+1]
+		eval indir=\${$index}
+		echo "subject's folder : ${indir}"
+		;;
+	-epi)
+		index=$[$index+1]
+		eval epi=\${$index}
+		echo "epi file : ${epi}"
+		;;
+	-tr)
+		index=$[$index+1]
+		eval TR=\${$index}
+		echo "TR value : ${TR}"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage: FMRI_PrepForSubCortRegBySPM12.sh  -sd <path>  -epi <file>  -tr <value> "
+		echo ""
+		echo "  -sd                           : subject's directory "
+		echo "  -epi                          : epi file "
+		echo "  -tr                           : TR value "
+		echo ""
+		echo "Usage: FMRI_PrepForSubCortRegBySPM12.sh  -sd <path>  -epi <file>  -tr <value> "
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+if [ ! -d ${indir}/fmri ]
+then
+	mkdir ${indir}/fmri
+else
+	rm -rf ${indir}/fmri/*
+fi
+
+fslsplit ${epi} ${indir}/fmri/epi_ -t
+gunzip ${indir}/fmri/*.gz
+
+for ((ind = 0; ind < ${remframe}; ind += 1))
+do
+	filename=`ls -1 ${indir}/fmri/ | sed -ne "1p"`
+	rm -f ${indir}/fmri/${filename}
+done
+
+N=$(mri_info ${epi} | grep dimensions | awk '{print $6}')
+anat=${indir}/orig.nii
+
+/usr/local/matlab11/bin/matlab -nodisplay <<EOF
+
+	% Load Matlab Path
+	
+	addpath('/home/global/matlab_toolbox/spm12b');
+	
+	FMRI_PrepForSubCortRegBySPM12('${indir}/fmri','${anat}',${TR},${N});
+  
+EOF

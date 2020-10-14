@@ -1,0 +1,50 @@
+#!/bin/bash
+
+SUBJECTS_DIR=/home/renaud/NAS/Louise/sophie/CODE2/FS50
+group=$1
+if [ ${group} -eq 1 ]
+then
+	subjFile=/home/renaud/NAS/Louise/sophie/CODE2/subjects/subjectList_fmri1.txt
+	nrun=3
+else
+	subjFile=/home/renaud/NAS/Louise/sophie/CODE2/subjects/subjectList_fmri2.txt
+	nrun=1
+fi
+TR=2.4
+acquis=interleaved
+output=preprocess
+fwhmvol=6
+fwhmsurf=1.5
+rmframe=3
+
+for SUBJ in `cat ${subjFile}`
+do 
+
+	echo "${SUBJ}"
+
+	if [ ${group} -eq 1 ]
+	then
+		if [ ! -f /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run03.nii ]
+		then
+			mv /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/rsfmri.nii /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run03.nii
+		fi
+
+		qbatch -q fs_q -oe /home/renaud/NAS/Louise/sophie/CODE2/log/ -N prep1_${SUBJ} FMRI_PrepAndICA.sh -sd ${SUBJECTS_DIR} -subj ${SUBJ} -epi /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run01.nii -o ${SUBJECTS_DIR}/${SUBJ}/fmri/run01 -fwhmsurf ${fwhmsurf} -fwhmvol ${fwhmvol} -refslice 1 -acquis ${acquis} -resampling 0 -rmframe ${rmframe} -ncomp 40 -tr ${TR}
+		sleep 5
+		qbatch -q fs_q -oe /home/renaud/NAS/Louise/sophie/CODE2/log/ -N prep2_${SUBJ} FMRI_PrepAndICA.sh -sd ${SUBJECTS_DIR} -subj ${SUBJ} -epi /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run02.nii -o ${SUBJECTS_DIR}/${SUBJ}/fmri/run02 -fwhmsurf ${fwhmsurf} -fwhmvol ${fwhmvol} -refslice 1 -acquis ${acquis} -resampling 0 -rmframe ${rmframe} -ncomp 40 -tr ${TR}
+		sleep 5
+		qbatch -q fs_q -oe /home/renaud/NAS/Louise/sophie/CODE2/log/ -N prep3_${SUBJ} FMRI_PrepAndICA.sh -sd ${SUBJECTS_DIR} -subj ${SUBJ} -epi /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run03.nii -o ${SUBJECTS_DIR}/${SUBJ}/fmri/run03 -fwhmsurf ${fwhmsurf} -fwhmvol ${fwhmvol} -refslice 1 -acquis ${acquis} -resampling 0 -rmframe ${rmframe} -ncomp 40 -tr ${TR}
+		sleep 5
+
+	else
+		if [ ! -f /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run01.nii ]
+		then
+			mv /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/rsfmri.nii /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run01.nii
+		fi
+		qbatch -q fs_q -oe /home/renaud/NAS/Louise/sophie/CODE2/log/ -N prep1_${SUBJ} FMRI_PrepAndICA.sh -sd ${SUBJECTS_DIR} -subj ${SUBJ} -epi /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ}/run01.nii -o ${SUBJECTS_DIR}/${SUBJ}/fmri/run01 -fwhmsurf ${fwhmsurf} -fwhmvol ${fwhmvol} -refslice 1 -acquis ${acquis} -resampling 0 -rmframe ${rmframe} -ncomp 40 -tr ${TR}
+		sleep 5
+	fi
+
+	#qbatch -q fs_q -oe /home/renaud/NAS/Louise/sophie/CODE2/log/ -N prep_${SUBJ} NRJ_PreprocessingSPM12.sh -sd ${SUBJECTS_DIR} -subj ${SUBJ} -nrun ${nrun} -epi /home/renaud/NAS/Louise/sophie/CODE2/subjects/${SUBJ} -o ${output} -fwhmvol ${fwhmvol} -fwhmsurf ${fwhmsurf} -acquis ${acquis} -rmframe ${rmframe} -tr ${TR}
+
+done

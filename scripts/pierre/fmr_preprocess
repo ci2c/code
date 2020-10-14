@@ -1,0 +1,889 @@
+#!/usr/bin/perl -w
+#---------------------------------------------------------------------------
+#@COPYRIGHT :
+#             Copyright 1996, Richard D. Hoge,
+#             McConnell Brain Imaging Centre,
+#             Montreal Neurological Institute, McGill University.
+#             Permission to use, copy, modify, and distribute this
+#             software and its documentation for any purpose and without
+#             fee is hereby granted, pro
+#             fee is hereby granted, provided that the above copyrightvided that the above copyright
+#             notice appear in all copies.  The author and McGill University
+#             make no representations ab
+#             fee is hereby granted, provided that the above copyrightout the suitability of this
+#             software for any purpose.  It is provided "as is" without
+#             express or implied warranty.
+#----------------------------------------------------------------------------
+#$RCSfile: fmr_preprocess,v $
+#$Revision: 1.14 $
+#$Author: mferre $
+#$Date:  2006/04/11 10:33:14 $
+#$State: Exp $
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : fmr_preprocess
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: preprocess (correct for motion and low-pass filter)
+#@             dynamic image series
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : June 1997, R. Hoge
+#@MODIFIED   : 
+#  $Id: fmr_preprocess,v 1.12 1999/06/02 17:40:13 vali Exp $
+#  $Id: fmr_preprocess,v 1.14 2006/04/11 10:33:14 mferre - various bug fixes
+#-----------------------------------------------------------------------------
+
+# stuff for MNI::Spawn:
+
+require 5.001;
+use strict;
+use Benchmark;
+use Getopt::Tabular;
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
+use MNI::MincUtilities qw(:all);
+use MNI::FileUtilities qw(check_output_dirs check_files);
+RegisterPrograms([qw(cp mincconcat rm 
+		     gunzip mincreshape 
+		     gzip mincblur 
+		     mv mincresample 
+		     autocrop 
+		     minctracc
+		     param2xfm)]);
+
+my( $blurred,
+    $align,
+    $fwhm,
+    $targ_ix,
+    $inplane,
+    $intensity,
+    $align_opts,
+    $base,
+    $files,
+    $target_extracted,
+    $init_guess_extracted,
+    $inname,
+    $outname,
+    $logname,
+    $frames,
+    $time_widths,
+    $target_label,
+    $target,
+    $z_sp,
+    $z_step,
+    $nelem_z,
+    $z_start,
+    $y_sp,
+    $y_step,
+    $nelem_y,
+    $y_start,
+    $x_sp,
+    $x_step,
+    $nelem_x,
+    $x_start,
+    $resampling_step,
+    $resampling_step_x,
+    $resampling_step_y,
+    $resampling_step_z,
+    $target_hires,
+    $target_native,
+    $options,
+    $centroid,
+    $fixed_center,
+    $Usage,
+    $directory,
+
+    @mincinfo_response,
+    @files,
+    @volumes,
+    @volumes2,
+    @inputs,
+    @args_table, 
+    @args);
+
+
+$align = 1;
+$fwhm = 6;
+$targ_ix = 2;
+$inplane = 0;
+$intensity = 1;
+$align_opts = "";
+$fixed_center = 1;
+$blurred = 1;
+
+
+$Usage = <<USAGE;
+
+Usage: $ProgramName input.mnc -options   
+USAGE
+
+
+@args_table = (@DefaultArgs,
+	       ["General Options","section"],
+	       ["-blur|-noblur","boolean", 0,\$blurred,"do not blur frames"],
+               ["-align|-noalign","boolean", 0,\$align," perform motion correction this is the default, opposite  is -noblur, do not perform motion correction"],
+               ["-fwhm", "integer", 1,\$fwhm, "<num>: FWHM of blurring kernel in mm (default 6mm)"],
+               ["-target", "integer", 1,\$targ_ix, "<num>:target frame index in 1st dynamic file (default 3d frame)"],
+               ["-inplane", "boolean", 0,\$inplane, "perform inplane motion correction only"], 
+               ["-gradient|-intensity", "boolean", 0, \$intensity,"match gradient instead of intensity"],
+               ["-align_opts","float",6,\$align_opts, "not defined yet"],
+               ["-new_centers|-fixed_center", "boolean", 0, \$fixed_center, "compute new center of rotation for each frame"]);
+
+Getopt::Tabular::SetHelp ('', $Usage);
+
+GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
+(@args < 1) && die $Usage;
+
+check_output_dirs($TmpDir, $directory);
+
+if ($Clobber)
+{
+    AddDefaultArgs ('mincconcat', '-clobber');
+}
+if ($Verbose)
+{
+    AddDefaultArgs ('mincreshape', '-verbose');
+    AddDefaultArgs ('mincconcat', '-verbose');
+}
+
+@inputs = @args;
+#print("\n @ARGV @inputs\n");
+@files = @inputs;
+
+$base  = "$TmpDir/vol";
+
+
+$target_extracted = 0;
+$init_guess_extracted = 0;
+
+foreach (@files)
+{
+
+#
+# process filenames:
+#
+
+    $inname = $_;
+    
+    print("\nprocessing file $inname\n");
+
+    $outname = $inname;
+    $outname =~ s/\.mnc/_MC.mnc/;
+    $outname =~ s/\.gz//;
+   ((-e $outname ) && !$Clobber) &&
+      (die("Clobber option not given.  Cannot overwrite file:"
+              ." $outname\n"));
+
+
+    $logname = $inname;
+    $logname =~ s/\.mnc/_MC.m/;
+    $logname =~ s/\.gz//;
+
+#
+# Get the time information from the source file
+#
+
+    $frames = `mincinfo -dimlength time $inname`;
+    chop $frames;
+
+    if ($Verbose)
+    {
+	print("\nNumber of frames: $frames\n");
+    }
+
+if($targ_ix > ($frames - 1))
+{
+  die ("the target you specified exceeds the maximum number of frames, please choose a different target");
+}
+
+
+# Split the dynamic data into a set of separate MINC files, each one
+# containing a single volume from a single time point.
+
+    $time_widths = &split_on_time ($inname, $base, $frames);
+
+# Calculate appropriate transforms for each volume.  We use the
+# designated volume as our model, and transform all other volumes to
+# match it.
+
+    # Sort the input volumes and avoid "arg list too long" problems - M. Ferreira 06/03/31
+
+#    @volumes2 = <$base*.mnc>;
+    opendir(DIR, $TmpDir) or die "Error reading directory $TmpDir: $!\n";
+    @volumes2 = map {"$TmpDir/$_"} grep {/\.mnc$/} readdir(DIR);
+    @volumes = map {$_->[0]}
+               sort {$a->[1] <=> $b->[1]}
+               map  { [ $_, /$base(\d+)/ ] }
+               @volumes2;
+    closedir(DIR);
+
+
+    if (!$target_extracted)
+    {
+	print("\nExtracting target volume from first file\n");
+
+	$target_label = $targ_ix - 1;
+	$target = "$base$target_label.mnc";
+
+	#Spawn ("cp $target $TmpDir/target_native.mnc")
+	#    && &die_clean ("Error copying target file.\n");
+	Spawn ("cp $target $TmpDir/target_native.mnc")
+	    && die ("Error copying target file.\n");
+
+	# create high-res version of target volume - will improve
+	# performance of minctracc.  Irregular step size of 1.11 used
+	# because slightly asynchronous sampling may also improve
+	# result
+
+	# 
+	#Get information about target's dimensions
+	#
+	$resampling_step = 1.17;
+	#$resampling_step = 0.89;
+
+	$z_sp = `mincinfo -dimlength zspace $target`;
+	chop $z_sp;
+	print ("\n z_sp=$z_sp\n");
+	$z_step = `mincinfo -attv zspace:step $target`;
+	chop $z_step;
+	print ("\n z_step = $z_step\n");
+	$nelem_z = int ((($z_sp - 1) * $z_step ) / $resampling_step);
+	#$nelem_z = -$nelem_z;
+	print ("\n nelem_z = $nelem_z\n");
+	if ($nelem_z < 0)
+	  {
+	    $nelem_z = -$nelem_z;;
+	    $resampling_step_z = -$resampling_step;
+	  }
+	else
+	  {
+	    $resampling_step_z = $resampling_step;
+	  }
+	$z_start = `mincinfo -attv zspace:start $target`;
+	chop $z_start;
+	print ("\n z_start =$z_start\n");
+	#$z_start = -$z_start;
+
+	$y_sp = `mincinfo -dimlength yspace $target`;
+	chop $y_sp;
+        print("\n y_sp = $y_sp\n");
+
+	$y_step = `mincinfo -attv yspace:step $target`;
+	chop $y_step;
+	print("\n y_step = $y_step\n");
+
+        $nelem_y = int ((($y_sp - 1) * $y_step ) / $resampling_step);
+	if ($nelem_y < 0 )
+	  {
+	    $nelem_y = -$nelem_y;
+	    $resampling_step_y = - $resampling_step;
+           }
+         else
+           {
+	     $resampling_step_y = $resampling_step;
+	   }
+	print ("\n nelem_y = $nelem_y\n"); 
+	#$nelem_y = -$nelem_y;
+        $y_start = `mincinfo -attv yspace:start $target`;
+	chop $y_start;
+	#$y_start = -$y_start;
+
+	$x_sp = `mincinfo -dimlength xspace $target`;
+	chop $x_sp;
+	$x_step = `mincinfo -attv xspace:step $target`;
+	chop $x_step;
+	$nelem_x = int ((($x_sp - 1) * $x_step ) / $resampling_step);
+        if ($nelem_x < 0)
+          {
+	    $nelem_x = -$nelem_x;
+	    $resampling_step_x = - $resampling_step;
+	  }
+        else 
+           {
+	     $resampling_step_x = $resampling_step;
+	   }
+
+	#$nelem_x = -$nelem_x;
+	$x_start = `mincinfo -attv xspace:start $target`;
+	chop $x_start;
+	#$x_start = -$x_start;
+	
+
+	print("\nGenerating oversampled copy of target:\n");
+	##Spawn ("autocrop $target $workdir/target_hires.mnc -isostep 1.11")
+	  ##  && &die_clean ("Error resampling target file.\n");
+	##Spawn ("autocrop $target $workdir/target_hires.mnc -isostep 1.17")
+	##      && &die_clean ("Error resampling target file.\n");
+ 
+	##Spawn("mincresample $target $workdir/target_hires.mnc ". `autocrop $t        ##  arget -isostep 1.2941176 -noresample`);
+
+	##Spawn ("autocrop $target $workdir/target_hires.mnc -isostep 1 -extend## 0,0 0,0 0,`mincinfo -attv zspace:step $target` ")
+             ##   && &die_clean ("Error resampling target file.\n");
+	
+	Spawn("mincresample $target $TmpDir/target_hires.mnc -start $x_start $y_start $z_start -step $resampling_step_x $resampling_step_y $resampling_step_z  -nelements $nelem_x $nelem_y $nelem_z");
+
+	$target_hires = "$TmpDir/target_hires.mnc";
+	$target_native = "$TmpDir/target_native.mnc";
+
+	# also, extract centre of mass of the first volume to use for
+	# all  alignments.  This is necessary so that the logged
+	# alignment info will be consistent between frames
+
+	if ($fixed_center) {
+
+	    $centroid = `volume_cog $target_native`;
+	    chomp($centroid); 
+	} else {
+
+	    $centroid = 0;
+
+	}
+
+	$target_extracted = 1;
+
+
+
+    }
+    else
+    {
+	print("\nusing previously extracted target volume\n");
+    }
+
+    &align_volumes ($align_opts,$inname, $target_hires, 
+		    $inplane, $intensity, $centroid, @volumes) 
+	if ($align);
+
+#
+# Blur the volumes if asked
+#
+
+    if ($blurred)
+    {
+	&blur_volumes ($fwhm, @volumes);
+	@volumes = <$base*_blur.mnc>;
+    }
+
+#
+# Based on the calculated transforms, resample the volumes so that
+# they align with the target.
+#
+
+    if ($align)
+    {
+	&resample_volumes ($target_native,@volumes);
+	@volumes = <$base*_resampled.mnc>;
+    }
+
+#
+# Form the desired output file by rejoining the separate volumes.
+#
+
+#     Spawn ("mincconcat -concat time @volumes $outname")
+     
+     # arg list too long bug fix - S. Milot 04/03/06 
+
+     my($tempInFile) = "$TmpDir/mincconcat.txt";
+     open(FILELIST, ">$tempInFile");
+     foreach (@volumes) {
+	 print FILELIST "$_\n"
+     }     
+     close(FILELIST);
+     Spawn ("mincconcat -concat time -filelist $tempInFile $outname")
+	&& die ("Error calling mincconcat.\n");
+
+}
+   
+sub split_on_time
+{
+    my ($options, $time_widths, $frame, $gzip);
+    my ($filename, $base, $total_num_frames) = @_;
+
+    
+    #
+    # Check to see if the file is gzipped.  If so, gunzip it to make
+    # things faster.  If we don't, it will be gunzipped *every* time
+    # we extract a volume.
+    #
+
+    if ($filename =~ /\.gz$/)
+    {
+	print("\nUnzipping $filename...\n") if ($Verbose);
+
+	Spawn ("gunzip $filename")
+	    && die_clean ("Error calling gunzip.\n");
+	$filename =~ s/\.gz$//;
+	$gzip = 1;
+    }
+    else
+    {
+	$gzip = 0;
+    }
+    
+    #
+    # Retrieve the time widths if they exist, so that we can put them
+    # back in when gluing the file together.
+    #
+
+    @mincinfo_response = 
+	`mincinfo -varvalues time-width -error_string none $filename`;
+
+    if ($mincinfo_response[0] =~ /none/)
+    {
+	$time_widths = "none";
+    }
+    else
+    {
+	chop (@mincinfo_response);
+	$time_widths = "@mincinfo_response";
+	$time_widths =~ s/ /,/g;
+    }
+
+    print("\nTime widths: $time_widths\n\n") if ($Verbose);
+    
+    #
+    # Extract each volume
+    #
+
+    $frame = 0;
+    while ($frame < $total_num_frames)
+    {
+	#Spawn ("mincreshape  $filename $base$frame.mnc -dimrange time=$frame,1") 
+	   # && die_clean("Error calling mincreshape") ;
+	  
+	 Spawn ("mincreshape $filename $base$frame.mnc -dimrange time=$frame,1") 
+	    && die("Error calling mincreshape") ;   
+
+	print("\nFile ",$frame+1," of $total_num_frames\n") if ($Verbose);
+	    
+	$frame++;
+    }
+    
+    #
+    # If we previously gunzipped the input file, then gzip it.
+    #
+
+    if ($gzip)
+    {
+	print("\nZipping $filename...\n") if ($Verbose);
+	
+	Spawn ("gzip $filename")
+	    && die("Error calling gzip.\n");
+    }
+
+    return ($time_widths);
+}
+
+
+sub align_volumes
+{
+    my ($vol_counter,
+	$alignprog, 
+	$alignoptions, 
+	$xfm_name,
+	$volname, 
+	$targetvol, 
+	$x,$y,$z,
+	$xfminfo_file,
+	$starting_guess,
+	$line,
+	$start_time,
+	$end_time,
+	$elapsed,
+	$today,
+
+	@final_corrs,
+	@step,
+	@trans_x,
+	@trans_y,
+	@trans_z,
+	@rot_x,
+	@rot_y,
+	@rot_z );
+
+
+    my ($align_opts2,$inname, $target_volume, 
+	$inplane, $intensity, $centroid, @volumes) = @_;
+
+
+
+    $start_time = new Benchmark;
+
+    $alignprog = "minctracc";
+    
+    if ($inplane)
+    {
+	print("\nperforming inplane alignment\n");
+	$alignoptions = " "; # 2D not currently supported
+    }
+    else
+    {
+	print("\nperforming 3D alignment\n");
+
+	if ($centroid) {
+	    $alignoptions = "-est_center -simplex 3 -debug -lsq6 -source_lattice -center $centroid ";
+	} else {
+	    $alignoptions = "-est_center -simplex 3 -debug -lsq6 -source_lattice ";
+	}
+    }
+
+    # can pass alternate alignment options via command line:
+
+    if ($align_opts2 ne "") 
+    {
+	$alignoptions = $align_opts2;
+    }
+
+    if (!$intensity)
+    {
+
+	#
+	# Calculate the gradient of the target volume
+	#
+
+	print("Creating gradient volume for $target_volume.\n") if ($Verbose);
+	
+	Spawn ("mincblur -no_apodize -quiet -fwhm 3 -gradient $target_volume $TmpDir/target") && die("Error calling mincblur.\n");
+
+	$targetvol = "$TmpDir/target_dxyz.mnc";
+    }
+    else
+    {
+	$targetvol = $target_volume;
+    }
+
+    #
+    # Call the alignment program for each of the volumes.  The
+    # alignment (registration) program should produce a transform for
+    # a volume that matches the volume to the target.  A better fit
+    # may be found if we match gradients instead of intensities, so
+    # the alignment can be calculated on the gradients of each volume.
+    #
+
+    if (!$intensity)
+    {
+	$volname = "$TmpDir/grad_dxyz.mnc";
+    }
+
+
+    # $starting_guess will contain transormation from previous
+    # loop, to save time
+
+    $starting_guess = "$TmpDir/ident.xfm";
+
+    if (!$init_guess_extracted) {
+	 Spawn("param2xfm $starting_guess")
+	    && die("Error creating starting guess xfm.\n");   
+	    
+	$init_guess_extracted = 1;
+    }
+
+    # open file ($logname) to contain translation/rotation information:
+
+    $outname = $inname;
+    $outname =~ s/\.mnc/_MC.mnc/;
+    $outname =~ s/\.gz//;
+
+    $logname = $inname;
+    $logname =~ s/\.mnc/_MC.log/;
+    $logname =~ s/\.gz//;
+
+    $today = localtime(time);
+
+    open (LOG,">$logname");
+
+    print LOG "\n";
+    print LOG " fmr_preprocess logfile:  $today \n";
+    print LOG " input file:   $inname\n";
+    print LOG " output file:  $outname\n";
+    print LOG "\n\n";
+    print LOG "dx dy dz rx ry rz xc:\n";
+
+    $vol_counter = 0;
+
+    foreach (@volumes)
+    {
+
+	$xfminfo_file = "$TmpDir/xfminfo_${vol_counter}.log"; #
+$xfminfo_file = "$TmpDir/xfminfo.log"; $vol_counter++;
+
+	$xfm_name = $_;
+	$xfm_name =~ s/mnc$/xfm/;
+
+	if (!$intensity)
+	{
+
+	    #
+	    # Create the gradient volume
+	    #
+
+	    print("\nCreating gradient volume for $_.\n") if ($Verbose);
+
+	    Spawn ("mincblur -no_apodize -quiet -fwhm 3 -gradient $_ $TmpDir/grad")
+		&& die("Error calling mincblur.\n");
+	}
+	else
+	{
+	    $volname = $_;
+	}
+
+
+	#
+	# Do the alignment
+	#
+
+	print("\n\nAligning $_ with target volume.\n") if ($Verbose);
+        print("Using $starting_guess as intial xfm guess.\n") if ($Verbose);
+        print("Creating $xfm_name as the transform for the current frame.\n\n") if ($Verbose);
+
+
+	# extract volume sampling:
+
+	volume_params($volname, undef, \@step, undef, undef, undef);
+
+	$step[0] *= 2;
+	$step[1] *= 2;
+	$step[2] *= 2;
+
+	# compute transformation:
+	# output dumped to temporary logfile for extraction of 
+	# translation, rotation, and final fits
+
+	#Spawn ("$alignprog $volname $targetvol $xfm_name $alignoptions -step $step[0] $step[1] $step[2] -transformation $starting_guess",stdout=>">$xfminfo_file") && &die_clean ("Error calling $alignprog.\n");
+
+	Spawn ("$alignprog $volname $targetvol $xfm_name $alignoptions -step $step[0] $step[1] $step[2] -transformation $starting_guess",stdout=>">$xfminfo_file") && &die("Error calling $alignprog.\n");
+
+	# extract translations, rotations, and final correction from
+	# minctracc output; save them to logfile:
+
+	open (F, "tail -30 $xfminfo_file|");
+	while (<F>) {
+	    $line = $_;
+	    chomp $line;
+	    if (/^-translation/) {
+		($x, $y,$z) = (split(" ",$line))[1..3];
+		push @trans_x,$x;
+		push @trans_y,$y;
+		push @trans_z,$z;
+		printf LOG (" %10.3f %10.3f %10.3f",$x,$y,$z);
+	    }
+	    if (/^-rotation/) {
+		($x, $y,$z) = (split(" ",$line))[1..3];
+		push @rot_x,$x;
+		push @rot_y,$y;
+		push @rot_z,$z;
+		printf LOG (" %10.3f %10.3f %10.3f",$x,$y,$z);
+	    }
+	    if (/^Final/) {
+		($x) = (split(" ",$line))[5];
+		push @final_corrs,$x;
+		printf LOG (" %10.5f\n",$x);
+	    }
+	}
+	close(F);
+		    
+	# use output xfm as initial guess for next volume:
+
+	$starting_guess = $xfm_name;
+
+	if (!$intensity)
+	{
+
+	    #
+	    # Remove the gradient volumes
+	    #
+
+	    unlink (<$TmpDir/grad_*.mnc>);
+	}
+    }
+
+    # numerically sort trans/rot lists to find max deviation:
+    # get rid of first scan
+
+    print LOG "\n";
+
+    shift(@trans_x);
+    @trans_x = map abs, @trans_x;
+    @trans_x = sort {$a <=> $b} @trans_x;
+    print LOG "\nMax X translation:  $trans_x[-1]";
+ 
+    shift(@trans_y);
+    @trans_y = map abs, @trans_y;
+    @trans_y = sort {$a <=> $b} @trans_y;
+    print LOG "\nMax Y translation:  $trans_y[-1]";
+
+    shift(@trans_z);
+    @trans_z = map abs, @trans_z;
+    @trans_z = sort {$a <=> $b} @trans_z;
+    print LOG "\nMax Z translation:  $trans_z[-1]";
+
+    shift(@rot_x);
+    @rot_x = map abs, @rot_x;
+    @rot_x = sort {$a <=> $b} @rot_x;
+    print LOG "\nMax X rotation:  $rot_x[-1]";
+
+    shift(@rot_y);
+    @rot_y = map abs, @rot_y;
+    @rot_y = sort {$a <=> $b} @rot_y;
+    print LOG "\nMax Y rotation:  $rot_y[-1]";
+
+    shift(@rot_z);
+    @rot_z = map abs, @rot_z;
+    @rot_z = sort {$a <=> $b} @rot_z;
+    print LOG "\nMax Z rotation:  $rot_z[-1]";
+
+    shift(@final_corrs);
+    @final_corrs = map abs, @final_corrs;
+    @final_corrs = sort {$a <=> $b} @final_corrs;
+    print LOG "\nMaximum fit value:  $final_corrs[-1]\n";
+
+    $end_time = new Benchmark;
+
+    $elapsed = timestr(timediff($end_time, $start_time));
+
+    $elapsed =~ s/secs.*//;
+    
+    $elapsed = $elapsed / 60;
+
+    print LOG "\nElapsed time:  ",$elapsed," minutes\n";
+
+    close (LOG);
+    
+    if (!$intensity)
+    {
+
+	#
+	# Remove the target gradient volume
+	#
+
+	unlink (<$TmpDir/target_*.mnc>);
+    }
+}
+
+
+sub blur_volumes
+{
+    my ($blurprog, $bluropt, $concatopt, $outbase,
+	   $time_point, $time_start, $time_step, $outfile,
+	   $tempname);
+
+    my ($fwhm, @volumes) = @_;
+
+    $blurprog = "mincblur";
+    $bluropt = "-fwhm $fwhm -no_apodize";
+    $concatopt = "-concat time";
+
+    if ($Verbose)
+    {
+	$bluropt = $bluropt . " -verbose";
+	$concatopt = $concatopt . " -verbose";
+    }
+    else
+    {
+	$bluropt = $bluropt . " -quiet";
+	$concatopt = $concatopt . " -quiet";
+    }
+
+    #
+    # Blur each of the volumes.
+    #
+
+    foreach (@volumes)
+    {
+	$outbase = $_;
+	$outbase =~ s/\.mnc//;
+
+	print("\nBlurring $_.\n") if ($Verbose);
+
+	#
+	# Save the time info for the file, since this presently
+	# gets lost in the blurring process.
+	#
+
+	$time_point = `mincinfo -varvalues time $_`;
+	chop $time_point;
+	$time_start = `mincinfo -attvalue time:start -error_string none $_`;
+	chop $time_start;
+	$time_step  = `mincinfo -attvalue time:step -error_string none $_`;
+	chop $time_step;
+
+	#
+	# Do the blurring
+	#
+
+	Spawn ("$blurprog $bluropt $_ $outbase")
+	    && &die_clean ("Error calling mincblur.\n");
+
+	#
+	# Restore the time information so that everything
+	# will be combined properly at the end.
+	#
+
+	if ($time_start =~ /none/)
+	{
+	    $time_start = $time_point;
+	}
+	if ($time_step =~ /none/)
+	{
+	    $time_step = 1;
+	}
+
+	$outfile = $outbase . "_blur.mnc";
+	$tempname = "temp$$.mnc";
+
+	Spawn ("mincconcat $concatopt -start $time_start -step $time_step $outfile $tempname")
+	    && &die_clean ("Error calling mincconcat.\n");
+	Spawn ("mv $tempname $outfile")
+	    && &die_clean ("Error calling mv");
+    }
+}
+
+
+sub resample_volumes
+{
+    my ($resampleprog, $options, $xfm_name, $output_name);
+
+    my ($target_volume, @volumes) = @_;
+
+    $resampleprog = "mincresample";
+    
+    # bug fix: these two resampling types are mutually exclusive - M.Ferreira 06/04/11
+    # $options = "-use_input_sampling -like $target_volume -trilinear";
+    $options = "-like $target_volume -trilinear";
+
+    if ($Verbose)
+    {
+	$options = $options . " -verbose";
+    }
+    else
+    {
+	$options = $options . " -quiet";
+    }
+
+    foreach (@volumes)
+    {
+	$xfm_name = $_;
+	if (/$TmpDir\/.*_.*/)
+	{
+	    $xfm_name =~ s/^(.*)_.*\.mnc/$1\.xfm/;
+	}
+	else
+	{
+	    $xfm_name =~ s/\.mnc/\.xfm/;
+;
+	    #print("\n$xfm_name\n");
+	}
+
+	$output_name = $_;
+	$output_name =~ s/\.mnc$/_resampled.mnc/;
+
+	print("\nResampling $_ with $xfm_name.\n") if ($Verbose);
+
+	Spawn ("$resampleprog $options -transform $xfm_name $_ $output_name")
+	    && &die_clean ("Error calling mincresample.\n");
+
+    }
+}
+
+

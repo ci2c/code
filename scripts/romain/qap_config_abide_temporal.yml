@@ -1,0 +1,19 @@
+num_cores_per_subject: 4
+
+num_subjects_at_once: 1
+
+output_directory: /NAS/dumbo/protocoles/strokconnect/QA
+
+working_directory: /NAS/dumbo/protocoles/strokconnect/QAtmp
+
+write_all_outputs: False
+
+start_idx: 0
+
+stop_idx: 2
+
+slice_timing_correction: False
+
+write_report: False
+
+write_graph: False

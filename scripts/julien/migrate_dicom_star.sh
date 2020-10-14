@@ -1,0 +1,40 @@
+#!/bin/bash
+
+export LC_CTYPE=C
+export LANG=C
+
+if [ $# -lt 1 ]
+then
+	echo ""
+	echo "Usage:  migrate_dicom_star.sh  -d <date>"
+	echo "!! Attention necessite d'etre execute en sudo user sur GAIA !! "
+	echo "  -d      : date"
+	echo ""
+	echo "Author: Julien DUMONT - CHRU Lille - Sept, 2014"
+	echo ""
+fi
+
+
+while getopts hd: option
+do
+   case ${option}
+     in
+	d) mydate=$OPTARG
+	   
+		scp -r star@star:/home/star/storage_space/Local/local_2/$mydate/ /NAS/DICOMDB/ 
+
+	   
+	;;
+	h) echo ""
+	echo "Usage:  imvdb_compressor.sh  -d <date>"
+	echo "!! Attention necessite d'etre execute en sudo user sur GAIA !! "
+	echo "  -d      : date"
+	echo ""
+	echo "Author: Julien DUMONT - CHRU Lille - Sept, 2014"
+	echo ""
+	exit 1
+	;;
+   esac
+done
+
+

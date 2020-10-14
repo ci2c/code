@@ -1,0 +1,337 @@
+#!/bin/bash
+
+if [ $# -lt 8 ]
+then
+	echo ""
+	echo "Usage: ModelOneROI_SPHARM.sh -fs <fs_dir>  -subj <subj_id>  -sname <structure_name>  -sid <structure_id>  [-tmp <temp_dir>  -segvol <segmentation_volume>  -res <resolution> ]"
+	echo ""
+	echo "  -fs <fs_dir>                         : Path to Freesurfer outdir, i.e. SUBJECTS_DIR"
+	echo "  -subj <subj_id>                      : Subject ID"
+	echo "  -sname <structure_name>              : Name of the subcortical structure"
+	echo "  -sid <structure_id>                  : ID of the subcortical structure"
+	echo ""
+	echo "Options :"
+	echo "  -tmp <temp_dir>                      : Path to directory for temp computations. Default = /tmp/"
+	echo "  -segvol <segmentation_volume>        : Segmentation to use. Default = aparc.a2009s+aseg.mgz"
+	echo "  -resolution <resolution>             : Image isotropic resolution (in  mm) for intermediate calculations. Default = 0.5"
+	echo " "
+	echo "Usage: ModelOneROI_SPHARM.sh -fs <fs_dir>  -subj <subj_id>  -sname <structure_name>  -sid <structure_id>  [-tmp <temp_dir>  -segvol <segmentation_volume>  -res <resolution> ]"
+	echo ""
+	exit 1
+fi
+
+index=1
+tmpdir=/tmp/
+segvol="aparc.a2009s+aseg.mgz"
+volres=0.5
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: ModelOneROI_SPHARM.sh -fs <fs_dir>  -subj <subj_id>  -sname <structure_name>  -sid <structure_id>  [-tmp <temp_dir>  -segvol <segmentation_volume>  -res <resolution> ]"
+		echo ""
+		echo "  -fs <fs_dir>                         : Path to Freesurfer outdir, i.e. SUBJECTS_DIR"
+		echo "  -subj <subj_id>                      : Subject ID"
+		echo "  -sname <structure_name>              : Name of the subcortical structure"
+		echo "  -sid <structure_id>                  : ID of the subcortical structure"
+		echo ""
+		echo "Options :"
+		echo "  -tmp <temp_dir>                      : Path to directory for temp computations. Default = /tmp/"
+		echo "  -segvol <segmentation_volume>        : Segmentation to use. Default = aparc.a2009s+aseg.mgz"
+		echo "  -resolution <resolution>             : Image isotropic resolution (in  mm) for intermediate calculations. Default = 0.5"
+		echo " "
+		echo "Usage: ModelOneROI_SPHARM.sh -fs <fs_dir>  -subj <subj_id>  -sname <structure_name>  -sid <structure_id>  [-tmp <temp_dir>  -segvol <segmentation_volume>  -res <resolution> ]"
+		echo ""
+		exit 1
+		;;
+	-fs)
+		fs=`expr $index + 1`
+		eval fs=\${$fs}
+		echo "|> FS dir           : $fs"
+		;;
+	-subj)
+		subj=`expr $index + 1`
+		eval subj=\${$subj}
+		echo "|> Subject          : $subj"
+		;;
+	-sname)
+		sname=`expr $index + 1`
+		eval sname=\${$sname}
+		echo "|> Structure name   : $sname"
+		;;
+	-sid)
+		sid=`expr $index + 1`
+		eval sid=\${$sid}
+		echo "|> Structure ID     : $sid"
+		;;
+	-tmp)
+		tmpdir=`expr $index + 1`
+		eval tmpdir=\${$tmpdir}
+		echo "|> Temp dir         : $tmpdir"
+		;;
+	-res)
+		volres=`expr $index + 1`
+		eval volres=\${$volres}
+		echo "|> Image resolution  : $volres"
+		;;
+	-segvol)
+		segvol=`expr $index + 1`
+		eval segvol=\${$segvol}
+		echo "|> Segmentation vol. : $segvol"
+		;;
+	-*)
+		Arg=`expr $index`
+		eval Arg=\${$Arg}
+		echo "Unknown argument ${Arg}"
+		echo ""
+		echo "Usage: ModelOneROI_SPHARM.sh -fs <fs_dir>  -subj <subj_id>  -sname <structure_name>  -sid <structure_id>  [-tmp <temp_dir>  -segvol <segmentation_volume>  -res <resolution> ]"
+		echo ""
+		echo "  -fs <fs_dir>                         : Path to Freesurfer outdir, i.e. SUBJECTS_DIR"
+		echo "  -subj <subj_id>                      : Subject ID"
+		echo "  -sname <structure_name>              : Name of the subcortical structure"
+		echo "  -sid <structure_id>                  : ID of the subcortical structure"
+		echo ""
+		echo "Options :"
+		echo "  -tmp <temp_dir>                      : Path to directory for temp computations. Default = /tmp/"
+		echo "  -segvol <segmentation_volume>        : Segmentation to use. Default = aparc.a2009s+aseg.mgz"
+		echo "  -resolution <resolution>             : Image isotropic resolution (in  mm) for intermediate calculations. Default = 0.5"
+		echo " "
+		echo "Usage: ModelOneROI_SPHARM.sh -fs <fs_dir>  -subj <subj_id>  -sname <structure_name>  -sid <structure_id>  [-tmp <temp_dir>  -segvol <segmentation_volume>  -res <resolution> ]"
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+is_caudate=`echo ${sname} | grep Caudate`
+is_putamen=`echo ${sname} | grep Putamen`
+is_left=`echo ${sname} | grep Left-`
+
+# Set some cool variables
+DIR=${fs}/${subj}
+tmps=${tmpdir}/${subj}
+my_label=${tmps}/${sname}
+SUBJECTS_DIR=${tmpdir}
+
+if [ ! -d ${tmps} ]
+then
+	mkdir ${tmps}
+	cp -R ${DIR}/mri ${tmps}/
+else
+	rm -rf ${tmps}
+	mkdir ${tmps}
+	cp -R ${DIR}/mri ${tmps}/
+fi
+
+# Create some cool dir & copy some cool data
+if [ ! -d ${my_label} ]
+then
+	mkdir ${my_label}
+else
+	rm -rf ${my_label}
+	mkdir ${my_label}
+fi
+
+# Extract ROI
+if [ -z ${is_putamen} ]
+then
+	echo "mri_extract_label ${DIR}/mri/${segvol} ${sid} ${my_label}/label_orig.mgz"
+	mri_extract_label ${DIR}/mri/${segvol} ${sid} ${my_label}/label_orig.mgz
+else
+	echo "mri_convert ${DIR}/mri/orig/001.mgz ${DIR}/mri/t1.nii --out_orientation LAS"
+	mri_convert ${DIR}/mri/orig/001.mgz ${DIR}/mri/t1.nii --out_orientation LAS
+	
+	if [ ! -z ${is_left} ]
+	then
+		mkdir ${DIR}/first_tmp_left
+		first_dir=${DIR}/first_tmp_left
+		echo "run_first_all -s L_Puta -i ${DIR}/mri/t1.nii -o ${first_dir}/L_Puta"
+		run_first_all -s L_Puta -i ${DIR}/mri/t1.nii -o ${first_dir}/L_Puta
+		
+		while [ ! -e ${first_dir}/L_Puta-L_Puta_first.nii.gz ]
+		do
+			sleep 5
+		done
+		
+		echo "mv ${first_dir}/L_Puta-L_Puta_first.nii.gz ${my_label}/L_Puta_first.nii.gz"
+		mv ${first_dir}/L_Puta-L_Puta_first.nii.gz ${my_label}/L_Puta_first.nii.gz
+		
+		rm -rf ${DIR}/mri/t1.nii ${DIR}/first_tmp_left
+		
+		echo "mri_extract_label ${my_label}/L_Puta_first.nii.gz ${sid} ${my_label}/label_orig.mgz"
+		mri_extract_label ${my_label}/L_Puta_first.nii.gz ${sid} ${my_label}/label_orig.mgz
+		
+	else
+		mkdir ${DIR}/first_tmp_right
+		first_dir=${DIR}/first_tmp_right
+		echo "run_first_all -s R_Puta -i ${DIR}/mri/t1.nii -o ${first_dir}/R_Puta"
+		run_first_all -s R_Puta -i ${DIR}/mri/t1.nii -o ${first_dir}/R_Puta
+		
+		while [ ! -e ${first_dir}/R_Puta-R_Puta_first.nii.gz ]
+		do
+			sleep 5
+		done
+		
+		echo "mv ${first_dir}/R_Puta-R_Puta_first.nii.gz ${my_label}/R_Puta_first.nii.gz"
+		mv ${first_dir}/R_Puta-R_Puta_first.nii.gz ${my_label}/R_Puta_first.nii.gz
+		
+		rm -rf ${DIR}/mri/t1.nii ${DIR}/first_tmp_right
+		
+		echo "mri_extract_label ${my_label}/R_Puta_first.nii.gz ${sid} ${my_label}/label_orig.mgz"
+		mri_extract_label ${my_label}/R_Puta_first.nii.gz ${sid} ${my_label}/label_orig.mgz
+		
+	fi
+fi
+
+# Remove useless files
+echo "**** Removing useless files ****"
+rm -rf ${tmps}/surf ${tmps}/epilepsy ${tmps}/dti
+mkdir ${tmps}/surf
+rm -f ${tmps}/mri/aparc+aseg.mgz 
+rm -f ${tmps}/mri/aparc.a2009s+aseg.mgz 
+rm -f ${tmps}/mri/aseg.auto.mgz 
+rm -f ${tmps}/mri/aseg.auto_noCCseg.label_intensities.txt 
+rm -f ${tmps}/mri/aseg.auto_noCCseg.mgz 
+rm -f ${tmps}/mri/brain.finalsurfs.mgz 
+rm -f ${tmps}/mri/brainmask.auto.mgz 
+rm -f ${tmps}/mri/brainmask.mgz 
+rm -f ${tmps}/mri/ctrl_pts.mgz 
+rm -f ${tmps}/mri/filled.mgz 
+rm -f ${tmps}/mri/lh.dpial.ribbon.mgz 
+rm -f ${tmps}/mri/lh.dwhite.ribbon.mgz 
+rm -f ${tmps}/mri/lh.ribbon.mgz 
+rm -f ${tmps}/mri/mri_nu_correct.mni.log 
+rm -f ${tmps}/mri/rh.dpial.ribbon.mgz 
+rm -f ${tmps}/mri/rh.dwhite.ribbon.mgz 
+rm -f ${tmps}/mri/rh.ribbon.mgz 
+rm -f ${tmps}/mri/ribbon.mgz 
+rm -f ${tmps}/mri/segment.dat 
+rm -f ${tmps}/mri/wm.asegedit.mgz 
+rm -f ${tmps}/mri/wm.mgz 
+rm -f ${tmps}/mri/wm.seg.mgz 
+rm -f ${tmps}/mri/wmparc.mgz
+
+# Resample volumes to $volres if necessary
+if [ ! "${volres}" == "1" ]
+then
+	echo "**** Resampling Volumes ****"
+	# Extracted label
+	mri_convert ${my_label}/label_orig.mgz ${my_label}/label_orig_${volres}.mgz -vs ${volres} ${volres} ${volres}
+	mv ${my_label}/label_orig_${volres}.mgz ${my_label}/label.mgz
+else
+	mv ${my_label}/label_orig.mgz ${my_label}/label.mgz
+fi
+
+if [ -z ${is_caudate} ]
+then
+	echo "mri_fwhm --i ${my_label}/label.mgz --fwhm 3 --o ${my_label}/label_smooth_fwhm3.mgz --smooth-only"
+	mri_fwhm --i ${my_label}/label.mgz --fwhm 3 --o ${my_label}/label_smooth_fwhm3.mgz --smooth-only
+
+	# echo "mri_binarize --i ${my_label}/label_smooth_fwhm3.mgz --o ${my_label}/label_close_bin.mgz --min 70 --max inf"
+	# mri_binarize --i ${my_label}/label_smooth_fwhm3.mgz --o ${my_label}/label_close_bin.mgz --min 70 --max inf
+	echo "mri_binarize --i ${my_label}/label_smooth_fwhm3.mgz --o ${my_label}/label_close_bin.mgz --min 58 --max inf" # GOOD ONE
+	mri_binarize --i ${my_label}/label_smooth_fwhm3.mgz --o ${my_label}/label_close_bin.mgz --min 58 --max inf # GOOD ONE
+else
+	echo "mri_fwhm --i ${my_label}/label.mgz --fwhm 4.1 --o ${my_label}/label_smooth_fwhm4.1.mgz --smooth-only"
+	mri_fwhm --i ${my_label}/label.mgz --fwhm 4.1 --o ${my_label}/label_smooth_fwhm4.1.mgz --smooth-only
+
+	# echo "mri_binarize --i ${my_label}/label_smooth_fwhm4.1.mgz --o ${my_label}/label_close_bin.mgz --min 65 --max inf" # GOOD ONE
+	# mri_binarize --i ${my_label}/label_smooth_fwhm4.1.mgz --o ${my_label}/label_close_bin.mgz --min 65 --max inf # GOOD ONE
+	echo "mri_binarize --i ${my_label}/label_smooth_fwhm4.1.mgz --o ${my_label}/label_close_bin.mgz --min 68 --max inf"
+	mri_binarize --i ${my_label}/label_smooth_fwhm4.1.mgz --o ${my_label}/label_close_bin.mgz --min 68 --max inf
+fi
+
+cp ${my_label}/label_close_bin.mgz ${tmps}/mri/wm.asegedit.mgz
+
+### TEST PUTAMEN
+# echo "mri_morphology ${my_label}/label_close_bin.mgz erode 3 ${my_label}/label_close_bin.mgz"
+# mri_morphology ${my_label}/label_close_bin.mgz erode 3 ${my_label}/label_close_bin.mgz
+#
+
+echo "mri_convert ${my_label}/label_close_bin.mgz ${my_label}/label_close_bin_ras.nii --out_orientation LPS"
+mri_convert ${my_label}/label_close_bin.mgz ${my_label}/label_close_bin_ras.nii --out_orientation LPS
+
+echo "SegPostProcessCLP ${my_label}/label_close_bin_ras.nii ${my_label}/label_close_bin_ras.gipl --space ${volres},${volres},${volres} --label 1 --iter 10000"
+SegPostProcessCLP ${my_label}/label_close_bin_ras.nii ${my_label}/label_close_bin_ras.gipl --space ${volres},${volres},${volres} --label 1 --iter 10000
+
+echo "GenParaMeshCLP --label 1 --iter 1000 ${my_label}/label_close_bin_ras.gipl ${my_label}/label_close_bin_ras_para.vtk ${my_label}/label_close_bin_ras_surf.vtk"
+GenParaMeshCLP --label 1 --iter 1000 ${my_label}/label_close_bin_ras.gipl ${my_label}/label_close_bin_ras_para.vtk ${my_label}/label_close_bin_ras_surf.vtk
+
+echo "ParaToSPHARMMeshCLP ${my_label}/label_close_bin_ras_para.vtk ${my_label}/label_close_bin_ras_surf.vtk ${my_label}/final_label_ --subdivLevel 11 --spharmDegree 14"
+ParaToSPHARMMeshCLP ${my_label}/label_close_bin_ras_para.vtk ${my_label}/label_close_bin_ras_surf.vtk ${my_label}/final_label_ --subdivLevel 11 --spharmDegree 14
+
+VTK2Meta ${my_label}/label_close_bin_ras_surf.vtk ${my_label}/label_close_bin_ras_surf.meta # Mesh used to get the XYZ shift
+
+VTK2Meta ${my_label}/final_label_SPHARM.vtk ${my_label}/final_label_SPHARM.meta
+
+# Realign surface to T1
+matlab -nodisplay <<EOF
+Meta2Obj('${my_label}/label_close_bin_ras_surf.meta', '${my_label}/label_close_bin_ras_surf.obj');
+V = spm_vol('${my_label}/label_close_bin_ras.nii');
+[Y, XYZ] = spm_read_vols(V);
+XYZ(:, Y(:) == 0) = [];
+min_vol_X_left = min(XYZ(1, :));
+max_vol_X_left = max(XYZ(1, :));
+min_vol_Y_left = min(XYZ(2, :));
+max_vol_Y_left = max(XYZ(2, :));
+min_vol_Z_left = min(XYZ(3, :));
+max_vol_Z_left = max(XYZ(3, :));
+
+Surf = SurfStatReadSurf('${my_label}/label_close_bin_ras_surf.obj');
+min_surf_X_left = min(Surf.coord(1,:));
+max_surf_X_left = max(Surf.coord(1,:));
+min_surf_Y_left = min(Surf.coord(2,:));
+max_surf_Y_left = max(Surf.coord(2,:));
+min_surf_Z_left = min(Surf.coord(3,:));
+max_surf_Z_left = max(Surf.coord(3,:));
+
+delta_X_min_left = min_vol_X_left - min_surf_X_left;
+delta_X_max_left = max_vol_X_left - max_surf_X_left;
+delta_Y_min_left = min_vol_Y_left - min_surf_Y_left;
+delta_Y_max_left = max_vol_Y_left - max_surf_Y_left;
+delta_Z_min_left = min_vol_Z_left - min_surf_Z_left;
+delta_Z_max_left = max_vol_Z_left - max_surf_Z_left;
+
+delta_X = (delta_X_min_left + delta_X_max_left) ./ 2;
+delta_Y = (delta_Y_min_left + delta_Y_max_left) ./ 2;
+delta_Z = (delta_Z_min_left + delta_Z_max_left) ./ 2;
+
+
+Meta2Obj('${my_label}/final_label_SPHARM.meta', '${my_label}/final_label_SPHARM.obj');
+
+Surf = SurfStatReadSurf('${my_label}/final_label_SPHARM.obj');
+Surf.coord(1, :) = Surf.coord(1, :) + delta_X;
+Surf.coord(2, :) = Surf.coord(2, :) + delta_Y;
+Surf.coord(3, :) = Surf.coord(3, :) + delta_Z;
+% Surf = supersampSurf(Surf);
+SurfStatWriteSurf('${my_label}/lh.orig', Surf, 'b');
+EOF
+
+# Process lh.orig
+echo "mris_remove_intersection ${my_label}/lh.orig ${my_label}/lh.white"
+mris_remove_intersection ${my_label}/lh.orig ${my_label}/lh.white
+
+echo "mris_smooth ${my_label}/lh.white ${my_label}/lh.smoothwm"
+mris_smooth ${my_label}/lh.white ${my_label}/lh.smoothwm
+
+echo "mris_inflate ${my_label}/lh.smoothwm ${my_label}/lh.inflated"
+mris_inflate ${my_label}/lh.smoothwm ${my_label}/lh.inflated
+
+echo "mris_curvature -thresh .999 -n -a 5 -w -distances 10 10 ${my_label}/lh.inflated"
+mris_curvature -thresh .999 -n -a 5 -w -distances 10 10 ${my_label}/lh.inflated
+
+echo "mris_sphere -seed 1234 ${my_label}/lh.inflated ${my_label}/lh.sphere"
+mris_sphere -seed 1234 ${my_label}/lh.inflated ${my_label}/lh.sphere
+
+# Zip & copy final outputs to original directory
+gzip -f ${my_label}/*.nii ${my_label}/*.gipl
+if [ -d ${DIR}/${sname} ]
+then
+	rm -rf ${DIR}/${sname}
+fi
+
+cp -Rf ${my_label} ${DIR}/${sname}

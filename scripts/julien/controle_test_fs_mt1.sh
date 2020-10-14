@@ -1,0 +1,62 @@
+#!/bin/bash
+
+
+
+input=$1
+
+cd ${1}
+
+for subject in $(ls)
+do
+
+printf "${subject};"
+
+# testing mri/aparc.a2009s+aseg.mgz
+	if [ ! -e  ${subject}/mri/aparc.a2009s+aseg.mgz ]
+	then
+		printf "missing segm ;"
+	else
+		printf $(du -h ${subject}/mri/aparc.a2009s+aseg.mgz)
+		printf ";" 
+	fi
+
+
+# testing label/lh.aparc.a2009s.annot
+	if [ ! -e  ${subject}/label/lh.aparc.a2009s.annot ]
+	then
+		printf "missing lh label ;"
+	else
+		printf $(du -h ${subject}/label/lh.aparc.a2009s.annot)
+		printf ";" 
+	fi
+
+# testing label/rh.aparc.a2009s.annot
+	if [ ! -e  ${subject}/label/rh.aparc.a2009s.annot ]
+	then
+		printf "missing rh label ;"
+	else
+		printf $(du -h ${subject}/label/rh.aparc.a2009s.annot)
+		printf ";" 
+	fi
+
+
+# testing stats/lh.aparc.a2009s.stat
+	if [ ! -e  ${subject}/stats/lh.aparc.a2009s.stats ]
+	then
+		printf "missing lh stat ;"
+	else
+		printf $(du -h ${subject}/stats/lh.aparc.a2009s.stats)
+		printf ";" 
+	fi
+# testing stats/rh.aparc.a2009s.stat
+	if [ ! -e  ${subject}/stats/rh.aparc.a2009s.stats ]
+	then
+		printf "missing rh stat ;"
+	else
+		printf $(du -h ${subject}/stats/rh.aparc.a2009s.stats)
+		printf ";" 
+	fi
+
+printf "\n"
+
+done

@@ -1,0 +1,216 @@
+#! /bin/bash
+
+if [ $# -lt 6 ]
+then
+	echo ""
+	echo "Usage: T1_Processing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -hcp]  "
+	echo ""
+	echo "  -sd                         : SUBJECTS_DIR folder "
+	echo "  -subj                       : Subject id "
+	echo "  -t1                         : t1 image (path/.nii.gz) "
+	echo ""
+	echo "Options "
+	echo "  -t2                         : t2 image (path/.nii.gz) "
+	echo "  -hcp                        : use of HCP script "
+	echo ""
+	echo "Usage: T1_Processing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -hcp] "
+	echo ""
+	exit 1
+fi
+
+HOME=/home/${USER}
+index=1
+T2="NONE"
+useHCP="FALSE"
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: T1_Processing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -hcp]  "
+		echo ""
+		echo "  -sd                         : SUBJECTS_DIR folder "
+		echo "  -subj                       : Subject id "
+		echo "  -t1                         : t1 image (path/.nii.gz) "
+		echo ""
+		echo "Options "
+		echo "  -t2                         : t2 image (path/.nii.gz) "
+		echo "  -hcp                        : use of HCP script "
+		echo ""
+		echo "Usage: T1_Processing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -hcp] "
+		echo ""
+		exit 1
+		;;
+	-sd)
+		index=$[$index+1]
+		eval SubjFolder=\${$index}
+		echo "SUBJECTS_DIR folder : ${SubjFolder}"
+		;;
+	-subj)
+		index=$[$index+1]
+		eval Subject=\${$index}
+		echo "Subject id : ${Subject}"
+		;;
+	-t1)
+		index=$[$index+1]
+		eval T1=\${$index}
+		echo "t1 image : ${T1}"
+		;;
+	-t2)
+		index=$[$index+1]
+		eval T2=\${$index}
+		echo "t2 image : ${T2}"
+		;;
+	-hcp)
+		useHCP="TRUE"
+		echo "use of HCP script"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage: T1_Processing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -hcp]  "
+		echo ""
+		echo "  -sd                         : SUBJECTS_DIR folder "
+		echo "  -subj                       : Subject id "
+		echo "  -t1                         : t1 image (path/.nii.gz) "
+		echo ""
+		echo "Options "
+		echo "  -t2                         : t2 image (path/.nii.gz) "
+		echo "  -hcp                        : use of HCP script "
+		echo ""
+		echo "Usage: T1_Processing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -hcp] "
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${T1} ]
+then
+	 echo "-t1 argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${SubjFolder} ]
+then
+	 echo "-sd argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${Subject} ]
+then
+	 echo "-subj argument mandatory"
+	 exit 1
+fi
+
+# compress if not
+filename=$(basename "$T1")
+extension="${filename##*.}"
+if [ "${extension}" == "nii" ]; then gzip -f $T1; T1=${T1}.gz; fi
+
+# Create SUBJECTS_DIR folder
+echo "Create SUBJECTS_DIR folder"
+if [ ! -d ${SubjFolder} ]; then mkdir ${SubjFolder}; fi
+
+# Processing
+echo -e "\n"
+echo -e "\n Start..."
+if [ ! $useHCP = "TRUE" ] ; then
+
+	echo -e "\n"
+	echo -e "\n Use of Freesurfer pipeline"
+	
+	echo "Create SUBJECTS_DIR folder"
+	if [ ! -d ${SubjFolder}/${Subject} ]; then mkdir ${SubjFolder}/${Subject}; fi
+
+        export HCPPIPEDIR_Global=${HCPPIPEDIR}/global/scripts
+        export HCPPIPEDIR_PreFS=${HCPPIPEDIR}/PreFreeSurfer/scripts      
+        echo "RV : ${HCPPIPEDIR_PreFS}"
+        
+	echo -e "\n T1_HCP_PreFreeSurferPipeline.sh -path ${SubjFolder} -subject ${Subject} -t1 ${T1} -t2 "NONE""
+	T1_HCP_PreFreeSurferPipeline.sh -path ${SubjFolder} -subject ${Subject} -t1 ${T1} -t2 "NONE"
+	
+	seed_cmd_appendix=""
+	T1wImage="${SubjFolder}/${Subject}/T1w/T1w_acpc_dc_restore.nii.gz" #T1w FreeSurfer Input (Full Resolution)
+  	T1wImageBrain="${SubjFolder}/${Subject}/T1w/T1w_acpc_dc_restore_brain.nii.gz" #T1w FreeSurfer Input (Full Resolution)
+	T1wImageFile=`remove_ext $T1wImage`;
+	T1wImageBrainFile=`remove_ext $T1wImageBrain`;
+
+	# Make Spline Interpolated Downsample to 1mm
+	echo -e "\n Make Spline Interpolated Downsample to 1mm"
+	Mean=`fslstats $T1wImageBrain -M`
+	flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
+	applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
+	applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
+	fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
+
+	# Initial Recon-all Steps
+	echo -e "\n Initial Recon-all Steps"
+	#- skullstrip of FreeSurfer not reliable for Phase II data because of poor FreeSurfer mri_em_register registrations with Skull on, run registration with PreFreeSurfer masked data and then generate brain mask as usual
+	SubjectDIR=${SubjFolder}/${Subject}
+	SubjectID=fs
+	recon-all -i "$T1wImageFile"_1mm.nii.gz -subjid "${SubjectID}" -sd "$SubjectDIR" -motioncor -talairach -nuintensitycor -normalization ${seed_cmd_appendix}
+	mri_convert "$T1wImageBrainFile"_1mm.nii.gz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz --conform
+	mri_em_register -mask "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz "$SubjectDIR"/"$SubjectID"/mri/nu.mgz $FREESURFER_HOME/average/RB_all_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta
+	mri_watershed -T1 -brain_atlas $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta "$SubjectDIR"/"$SubjectID"/mri/T1.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz 
+	cp "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz 
+
+	# Last recon-all Steps
+	echo -e "\n recon-all -sd "$SubjectDIR" -subjid "${SubjectID}" -autorecon2 -autorecon3 ${seed_cmd_appendix}"
+	recon-all -sd "$SubjectDIR" -subjid "${SubjectID}" -autorecon2 -autorecon3 ${seed_cmd_appendix}
+
+	echo "$SubjectID" > "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "1" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "1" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "1" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "1 0 0 0" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "0 1 0 0" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "0 0 1 0" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "0 0 0 1" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+	echo "round" >> "$SubjectDIR"/"$SubjectID"/mri/transforms/eye.dat
+
+	echo -e "\n T1_PostFreesurferPipelineBasedOnHCP.sh "${SubjFolder}" "${Subject}""
+	T1_PostFreesurferPipelineBasedOnHCP.sh "${SubjFolder}" "${Subject}"
+
+else
+
+	echo -e "\n"
+	echo -e "\n Use of HCP pipeline"
+
+	if [ ! $T2 = "NONE" ] ; then
+
+		echo -e "\n"
+		echo -e "\n Use of T2 image"
+
+		echo -e "\n T1_HCP_PreFreeSurferPipeline.sh -path ${SubjFolder} -subject ${Subject} -t1 ${T1} -t2 ${T2}"
+		T1_HCP_PreFreeSurferPipeline.sh -path ${SubjFolder} -subject ${Subject} -t1 ${T1} -t2 ${T2}
+
+		echo -e "\n T1_HCP_FreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal -ist2"
+		T1_HCP_FreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal -ist2
+
+		echo -e "\n T1_HCP_PostFreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal"
+		T1_HCP_PostFreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal -ist2
+
+	else
+
+		echo -e "\n"
+		echo -e "\n Do not use T2 image"
+
+		echo -e "\n T1_HCP_PreFreeSurferPipeline.sh -path ${SubjFolder} -subject ${Subject} -t1 ${T1} -t2 "NONE""
+		/home/renaud/SVN/scripts/renaud/T1_HCP_PreFreeSurferPipeline.sh -path ${SubjFolder} -subject ${Subject} -t1 ${T1} -t2 "NONE"
+
+		echo -e "\n T1_HCP_FreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal"
+		/home/renaud/SVN/scripts/renaud/T1_HCP_FreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal
+
+		echo -e "\n T1_HCP_PostFreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal"
+		/home/renaud/SVN/scripts/renaud/T1_HCP_PostFreeSurferPipeline.sh -StudyFolder ${SubjFolder} -Subjlist ${Subject} -runlocal
+
+	fi
+
+fi
+

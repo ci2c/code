@@ -1,0 +1,4 @@
+ANTS 3 -m PR[T1.nii,T2.nii,1,2] -i 100*100*10 -o T2toT1_ants.nii
+
+WarpImageMultiTransform 3 T2.nii T2toT1.nii -R T1.nii <ficher T2toT1_ants avec Warp .nii> <ficher T2toT1_ants avec Affine .txt>
+

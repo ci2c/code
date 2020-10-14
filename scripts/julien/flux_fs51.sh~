@@ -1,0 +1,11 @@
+#!/bin/bash
+
+
+
+
+export FREESURFER_HOME=/home/global/freesurfer5.1/
+. ${FREESURFER_HOME}/SetUpFreeSurfer.sh
+
+
+recon-all -all -sd /tmp -s $1 -i /NAS/dumbo/protocoles/flux/data/${1}/t1.nii -nuintensitycor-3T -hippo-subfields -bigventricles
+cp -Rf /tmp/$1 /NAS/dumbo/protocoles/flux/fs51

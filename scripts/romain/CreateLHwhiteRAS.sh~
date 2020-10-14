@@ -1,0 +1,16 @@
+# Step 9. Save cortical surfaces in volume space
+if [ ! -e ${1}/surf/lh.white.ras ]
+then
+
+mri_convert ${1}/mri/T1.mgz ${1}/mri/t1_ras.nii --out_orientation RAS
+
+matlab -nodisplay <<EOF
+surf = surf_to_ras_nii('${DIR}/surf/lh.white', '${DIR}/mri/t1_ras.nii');
+SurfStatWriteSurf('${DIR}/surf/lh.white.ras', surf, 'b');
+
+surf = surf_to_ras_nii('${DIR}/surf/rh.white', '${DIR}/mri/t1_ras.nii');
+SurfStatWriteSurf('${DIR}/surf/rh.white.ras', surf, 'b');
+EOF
+
+rm -f ${1}/mri/t1_ras.nii
+fi

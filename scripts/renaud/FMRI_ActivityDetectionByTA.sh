@@ -1,0 +1,142 @@
+#!/bin/bash
+
+if [ $# -ne 4 -a $# -ne 10 ]
+then
+	echo ""
+	echo "Usage: FMRI_ActivityDetectionByTA.sh  -i  <matFile>  -o  <folder>  [-pref out_prefix  -N number  -split number]"
+	echo ""
+	echo "  -i matFile                  : mat File of preprocessing (Launch PrepareData.m or SplitData.m)"
+	echo "  -o outdir                   : output folder"
+	echo " "
+	echo "Options :"
+	echo "  -pref prefix                : Output prefix "
+	echo "                                  Default : resTCA"
+	echo "  -N number                   : Number of splitting data"
+	echo "                                  Default : 0"
+	echo "  -split number               : Index of splitting data"
+	echo "                                  Default : 0"
+	echo " "
+	echo ""
+	echo "Usage: FMRI_ActivityDetectionByTA.sh  -i  <matFile>  -o  <folder>  [-pref out_prefix  -N number  -split number]"
+	exit 1
+fi
+
+#### Inputs ####
+index=1
+echo "------------------------"
+
+# Set default parameters
+prefix=resTCA
+Nsplit=0
+Isplit=0
+#
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: FMRI_ActivityDetectionByTA.sh  -i  <matFile>  -o  <folder>  [-pref out_prefix  -split number]"
+		echo ""
+		echo "  -i matFile                  : mat File of preprocessing (Launch PrepareData.m or SplitData.m)"
+		echo "  -o outdir                   : output folder"
+		echo " "
+		echo "Options :"
+		echo "  -pref prefix                : Output prefix "
+		echo "                                  Default : resTCA"
+		echo "  -split number               : Number of splitting data"
+		echo "                                  Default : 0"
+		echo " "
+		echo ""
+		echo "Usage: FMRI_ActivityDetectionByTA.sh  -i  <matFile>  -o  <folder>  [-pref out_prefix  -split number]"
+		exit 1
+		;;
+	-i)
+		matFile=`expr $index + 1`
+		eval matFile=\${$matFile}
+		echo "  |-------> mat File : $matFile"
+		index=$[$index+1]
+		;;
+	-o)
+		outdir=`expr $index + 1`
+		eval outdir=\${$outdir}
+		echo "  |-------> Output folder : ${outdir}"
+		index=$[$index+1]
+		;;
+	-pref)
+		prefix=`expr $index + 1`
+		eval prefix=\${$prefix}
+		echo "  |-------> output prefix : ${prefix}"
+		index=$[$index+1]
+		;;
+	-N)
+		Nsplit=`expr $index + 1`
+		eval Nsplit=\${$Nsplit}
+		echo "  |-------> Optional Number of splitting data : ${Nsplit}"
+		index=$[$index+1]
+		;;
+	-split)
+		Isplit=`expr $index + 1`
+		eval Isplit=\${$Isplit}
+		echo "  |-------> Optional Index of splitting data : ${Isplit}"
+		index=$[$index+1]
+		;;
+	-*)
+		TEMP=`expr $index`
+		eval TEMP=\${$TEMP}
+		echo "${TEMP} : unknown argument"
+		echo ""
+		echo "Enter $0 -help for help"
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+#################
+
+# Check inputs
+if [ ! -e ${matFile} ]
+then
+	echo "Can not find ${matFile} file"
+	exit 1
+fi
+
+if [ ! -e ${outdir} ]
+then 
+	echo "mkdir ${outdir}"
+	mkdir ${outdir}
+fi
+
+if [ ${Nsplit} -gt 0 ]
+then
+	# Fiber file was split : launch jobs on the cluster
+	JOB_ID=""
+	for ((i = 1; i <= ${Nsplit}; i += 1))
+	do
+		echo "${i}"
+		echo "qbatch -N splitTA_${i} -oe /home/renaud/log/ -q fs_q FMRI_ActivityDetectionByTA.sh -i ${matFile} -o ${outdir} -pref ${prefix} -N 0 -split ${i}"
+		TEMP=`qbatch -N splitTA_${i} -oe /home/renaud/log/ -q fs_q FMRI_ActivityDetectionByTA.sh -i ${matFile} -o ${outdir} -pref ${prefix} -N 0 -split ${i}`
+		TEMP=`echo ${TEMP} | awk '{print $3}'`
+		if [ -z "${JOB_ID}" ]
+		then
+			JOB_ID="-j ${TEMP}"
+		else
+			JOB_ID="${JOB_ID},${TEMP}"
+		fi
+		sleep 10
+	done
+	
+	echo "qbatch ${JOB_ID} -N postproc_splitTA -oe /home/renaud/log/ -q fs_q FMRI_PostProcessTA.sh -i ${outdir} -pref ${prefix} -N ${Nsplit}"
+	qbatch ${JOB_ID} -N postproc_splitTA -oe /home/renaud/log/ -q fs_q FMRI_PostProcessTA.sh -i ${outdir} -pref ${prefix} -N ${Nsplit}
+	
+else
+	# No corresponding split found, launch job locally
+/usr/local/matlab11/bin/matlab -nodisplay <<EOF
+
+	FMRI_SplitActivationDetection('${matFile}','${outdir}','${prefix}',${Isplit});
+
+EOF
+
+fi
+

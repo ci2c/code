@@ -1,0 +1,19 @@
+!!! This program is under strong development.
+Together with Adam, Marcel, Aart and Paul a improved version will be developed.
+If you want to get the latest version or help, please send me an email.
+From time to time this version will be updated
+
+Please let me know features you miss.
+
+05.08: Larger changes to allow diffusion scans be converted.
+
+06.07.05: Convert no longer needed under Windows and Linux (Thanks to Adam)
+     (however under Linux the use of convert will speed up be a factor 5!)
+     - Reorder of dynamics, slices should no work
+     - Some additional bug-fixes and further output (Thanks to Adam and Marcel)
+     - Thanks to Aart for testing and some test files
+     - Mulit Echo/HP/Image Types can now be splitted into different Analyze 
+       Files (-split)
+13.06.05: Now with Par-File version4 support.
+
+Roger (roger.luechinger@gyrotools.com)

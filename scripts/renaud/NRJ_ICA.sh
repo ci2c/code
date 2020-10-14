@@ -1,0 +1,285 @@
+#! /bin/bash
+
+if [ $# -lt 14 ]
+then
+	echo ""
+	echo "Usage: NRJ_ICA.sh -sd <SUBJECTS_DIR>  -subj <SUBJ_ID>  -i <folder>  -pref <name>  -o <path>  -tr <value>  -nrun <value>  [-ncomp <value>]"
+	echo ""
+	echo "  -sd                          : Path to FreeSurfer output directory (i.e. SUBJECTS_DIR)"
+	echo "  -subj                        : Subject's name "
+	echo "  -i                           : input folder "
+	echo "  -pref                        : epi prefix "
+	echo "  -o                           : output path "
+	echo "  -ncomp                       : number of components "
+	echo "  -tr                          : TR value "
+	echo "  -nrun                        : number of runs "
+	echo ""
+	echo "Usage: NRJ_ICA.sh -sd <SUBJECTS_DIR>  -subj <SUBJ_ID>  -i <folder>  -pref <name>  -o <path>  -tr <value>  -nrun <value>  [-ncomp <value>]"
+	echo ""
+	exit 1
+fi
+
+HOME=/home/renaud
+index=1
+ncomps=40
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: NRJ_ICA.sh -sd <SUBJECTS_DIR>  -subj <SUBJ_ID>  -i <folder>  -pref <name>  -o <path>  -tr <value>  -nrun <value>  [-ncomp <value>]"
+		echo ""
+		echo "  -sd                          : Path to FreeSurfer output directory (i.e. SUBJECTS_DIR)"
+		echo "  -subj                        : Subject's name "
+		echo "  -i                           : input folder "
+		echo "  -pref                        : epi prefix "
+		echo "  -o                           : output path "
+		echo "  -ncomp                       : number of components "
+		echo "  -tr                          : TR value "
+		echo "  -nrun                        : number of runs "
+		echo ""
+		echo "Usage: NRJ_ICA.sh -sd <SUBJECTS_DIR>  -subj <SUBJ_ID>  -i <folder>  -pref <name>  -o <path>  -tr <value>  -nrun <value>  [-ncomp <value>]"
+		echo ""
+		exit 1
+		;;
+	-sd)
+		index=$[$index+1]
+		eval SD=\${$index}
+		echo "SD : $SD"
+		;;
+	-subj)
+		index=$[$index+1]
+		eval SUBJ=\${$index}
+		echo "Subj : $SUBJ"
+		;;
+	-i)
+		index=$[$index+1]
+		eval indir=\${$index}
+		echo "input folder : $indir"
+		;;
+	-pref)
+		index=$[$index+1]
+		eval prefix=\${$index}
+		echo "epi prefix : ${prefix}"
+		;;
+	-o)
+		index=$[$index+1]
+		eval outdir=\${$index}
+		echo "output path : $outdir"
+		;;
+	-ncomp)
+		index=$[$index+1]
+		eval ncomps=\${$index}
+		echo "number of components : ${ncomps}"
+		;;
+	-tr)
+		index=$[$index+1]
+		eval TR=\${$index}
+		echo "TR value : ${TR}"
+		;;
+	-nrun)
+		index=$[$index+1]
+		eval N=\${$index}
+		echo "number of runs : ${N}"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage: NRJ_ICA.sh -sd <SUBJECTS_DIR>  -subj <SUBJ_ID>  -i <folder>  -pref <name>  -o <path>  -tr <value>  -nrun <value>  [-ncomp <value>]"
+		echo ""
+		echo "  -sd                          : Path to FreeSurfer output directory (i.e. SUBJECTS_DIR)"
+		echo "  -subj                        : Subject's name "
+		echo "  -i                           : input folder "
+		echo "  -pref                        : epi prefix "
+		echo "  -o                           : output path "
+		echo "  -ncomp                       : number of components "
+		echo "  -tr                          : TR value "
+		echo "  -nrun                        : number of runs "
+		echo ""
+		echo "Usage: NRJ_ICA.sh -sd <SUBJECTS_DIR>  -subj <SUBJ_ID>  -i <folder>  -pref <name>  -o <path>  -tr <value>  -nrun <value>  [-ncomp <value>]"
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${SD} ]
+then
+	 echo "-sd argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${SUBJ} ]
+then
+	 echo "-subj argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${indir} ]
+then
+	 echo "-i argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${prefix} ]
+then
+	 echo "-pref argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${outdir} ]
+then
+	 echo "-o argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${TR} ]
+then
+	 echo "-tr argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${N} ]
+then
+	 echo "-nrun argument mandatory"
+	 exit 1
+fi
+
+
+DIR="${SD}/${SUBJ}"
+SUBJECTS_DIR=${SD}
+
+if [ ! -d ${outdir} ]
+then
+	echo "mkdir -p ${outdir}"
+	mkdir -p ${outdir}
+fi
+
+echo "rm -rf ${outdir}/*"
+rm -rf ${outdir}/*
+
+echo "cp ${indir}/epi_mask.nii ${outdir}/"
+cp ${indir}/epi_mask.nii ${outdir}/
+
+#=========================================================================================
+#                              ICA Decomposition
+#=========================================================================================
+
+## ICA Decomposition
+/usr/local/matlab11/bin/matlab -nodisplay <<EOF
+
+% Load Matlab Path
+cd ${HOME}
+p = pathdef;
+addpath(p);
+
+runFiles  = conn_dir(fullfile('${indir}',['${prefix}' '*.nii']))
+transFile = conn_dir(fullfile('${indir}','y_*.nii'))
+
+for k = 1:${N}
+
+	if k < 10
+		runfolder = ['run0' num2str(k)];
+	else
+		runfolder = ['run' num2str(k)];
+	end
+	cmd = sprintf('mkdir %s',fullfile('${outdir}',runfolder));
+	unix(cmd);
+
+	hdr  = spm_vol(deblank(runFiles(k,:)));
+	vol  = spm_read_vols(hdr);
+	dim  = size(vol);
+	sica = FMRI_ICA(vol,fullfile('${outdir}','epi_mask.nii'),${TR},${ncomps});
+
+	save(fullfile('${outdir}',runfolder,'sica.mat'),'sica');
+
+	mask = 1:size(sica.S,1);
+
+	mepiFile = spm_select('FPList', '${indir}', '^mean.*\.nii$');
+	hdrmap   = spm_vol(mepiFile);
+	ind      = find(sica.mask(:)>0);
+
+	mapFiles = {};
+	for j = 1:sica.nbcomp
+		sig_c = FMRI_CorrectSignalOnSurface(double(sica.S(:,j)),mask,0.05,0);
+
+		map      = zeros(dim(1)*dim(2)*dim(3),1);
+		map(ind) = sig_c;
+		map      = reshape(map,dim(1),dim(2),dim(3));
+
+		mapFiles{j} = fullfile('${outdir}',runfolder,['ica_map_' num2str(j) '.nii']);
+	 	hdrmap.fname = mapFiles{j};
+		spm_write_vol(hdrmap,map);
+	end
+
+	if k==1
+		mapFiles{end+1} = fullfile('${outdir}','epi_mask.nii');
+	end
+
+	% Template Normalization
+	spm('Defaults','fMRI');
+	spm_jobman('initcfg'); % SPM8 and SPM12
+
+	matlabbatch = {};
+	matlabbatch{end+1}.spm.spatial.normalise.write.subj.def      = cellstr(deblank(transFile(1,:)));
+	matlabbatch{end}.spm.spatial.normalise.write.subj.resample   = mapFiles;
+	matlabbatch{end}.spm.spatial.normalise.write.woptions.bb     = [-78 -112 -70; 78 76 85];
+	matlabbatch{end}.spm.spatial.normalise.write.woptions.vox    = [2 2 2];
+	matlabbatch{end}.spm.spatial.normalise.write.woptions.interp = 4;
+
+	spm_jobman('run',matlabbatch);
+
+end
+
+EOF
+
+
+#=========================================================================================
+#                             Mapping on cortical surface
+#=========================================================================================
+
+meanFile=`ls -1 ${indir}/mean*.nii | sed -ne "1p"`
+echo "tkregister2 --mov ${meanFile} --s ${SUBJ} --regheader --noedit --reg ${outdir}/register_epi2struct.dat"
+tkregister2 --mov ${meanFile} --s ${SUBJ} --regheader --noedit --reg ${outdir}/register_epi2struct.dat
+
+for ((k = 1; k <= ${N}; k += 1))
+do
+
+	if [ ${k} -lt 10 ]
+	then
+		runname=run0${k}
+	else
+		runname=run${k}
+	fi
+
+	for ((ind = 1; ind <= ${ncomps}; ind += 1))
+	do
+
+		# native surface
+
+		# Left hemisphere
+		echo "mri_vol2surf --mov ${outdir}/${runname}/ica_map_${ind}.nii --reg ${outdir}/register_epi2struct.dat --interp trilin --projfrac 0.5 --hemi lh --o ${outdir}/${runname}/lh.ica_map_${ind}.mgh --noreshape --cortex --surfreg sphere.reg"
+		mri_vol2surf --mov ${outdir}/${runname}/ica_map_${ind}.nii --reg ${outdir}/register_epi2struct.dat --interp trilin --projfrac 0.5 --hemi lh --o ${outdir}/${runname}/lh.ica_map_${ind}.mgh --noreshape --cortex --surfreg sphere.reg
+			 
+		# Right hemisphere
+		echo "mri_vol2surf --mov ${outdir}/${runname}/ica_map_${ind}.nii --reg ${outdir}/register_epi2struct.dat --interp trilin --projfrac 0.5 --hemi rh --o ${outdir}/${runname}/rh.ica_map_${ind}.mgh --noreshape --cortex --surfreg sphere.reg"
+		mri_vol2surf --mov ${outdir}/${runname}/ica_map_${ind}.nii --reg ${outdir}/register_epi2struct.dat --interp trilin --projfrac 0.5 --hemi rh --o ${outdir}/${runname}/rh.ica_map_${ind}.mgh --noreshape --cortex --surfreg sphere.reg
+
+		# fsaverage surface
+
+		# Left hemisphere
+		echo "mri_surf2surf --srcsubject ${SUBJ} --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage --trghemi lh --trgsurfreg sphere.reg --sval ${outdir}/${runname}/lh.ica_map_${ind}.mgh --sfmt curv --noreshape --cortex --tval ${outdir}/${runname}/lh.fsaverage_ica_map_${ind}.mgh --tfmt curv"
+		mri_surf2surf --srcsubject ${SUBJ} --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage --trghemi lh --trgsurfreg sphere.reg --sval ${outdir}/${runname}/lh.ica_map_${ind}.mgh --sfmt curv --noreshape --cortex --tval ${outdir}/${runname}/lh.fsaverage_ica_map_${ind}.mgh --tfmt curv
+
+		# Right hemisphere
+		echo "mri_surf2surf --srcsubject ${SUBJ} --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage --trghemi lh --trgsurfreg sphere.reg --sval ${outdir}/${runname}/lh.ica_map_${ind}.mgh --sfmt curv --noreshape --cortex --tval ${outdir}/${runname}/lh.fsaverage_ica_map_${ind}.mgh --tfmt curv"
+		mri_surf2surf --srcsubject ${SUBJ} --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage --trghemi lh --trgsurfreg sphere.reg --sval ${outdir}/${runname}/lh.ica_map_${ind}.mgh --sfmt curv --noreshape --cortex --tval ${outdir}/${runname}/lh.fsaverage_ica_map_${ind}.mgh --tfmt curv
+
+	done
+	
+done

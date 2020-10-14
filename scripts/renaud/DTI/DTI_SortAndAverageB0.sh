@@ -1,0 +1,200 @@
+#!/bin/bash
+
+if [ $# -lt 6 ]
+then
+	echo ""
+	echo "Usage: DTI_SortAndAverageB0.sh  -dti  <nifti_image>  -bval  <file>  -bvec <file>  [-o <outfile>]"
+	echo ""
+	echo "  -dti                      : dti file (nifti image)"
+	echo "  -bval                     : bval file"
+	echo "  -bvec                     : bvec file"
+	echo " "
+	echo "Options :"
+	echo "  -o                        : output file (default : NONE)"
+	echo ""
+	echo "Usage: DTI_SortAndAverageB0.sh  -dti  <nifti_image>  -bval  <file>  -bvec <file>  [-o <outfile>]"
+	exit 1
+fi
+
+
+#### Inputs ####
+index=1
+echo "------------------------"
+
+# Set default parameters
+OUTFILE="NONE"
+b0maxbval=50
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: DTI_SortAndAverageB0.sh  -dti  <nifti_image>  -bval  <file>  -bvec <file>  [-o <outfile>]"
+		echo ""
+		echo "  -dti                      : dti file (nifti image)"
+		echo "  -bval                     : bval file"
+		echo "  -bvec                     : bvec file"
+		echo " "
+		echo "Options :"
+		echo "  -o                        : output file (default : NONE)"
+		echo ""
+		echo "Usage: DTI_SortAndAverageB0.sh  -dti  <nifti_image>  -bval  <file>  -bvec <file>  [-o <outfile>]"
+		exit 1
+		;;
+	-dti)
+		DTI=`expr $index + 1`
+		eval DTI=\${$DTI}
+		echo "  |-------> DTI file : $DTI"
+		index=$[$index+1]
+		;;
+	-bval)
+		BVAL=`expr $index + 1`
+		eval BVAL=\${$BVAL}
+		echo "  |-------> bval file : ${BVAL}"
+		index=$[$index+1]
+		;;
+	-bvec)
+		BVEC=`expr $index + 1`
+		eval BVEC=\${$BVEC}
+		echo "  |-------> bvec file : ${BVEC}"
+		index=$[$index+1]
+		;;
+	-o)
+		OUTFILE=`expr $index + 1`
+		eval OUTFILE=\${$OUTFILE}
+		echo "  |-------> Optional OUTFILE : ${OUTFILE}"
+		index=$[$index+1]
+		;;
+	-*)
+		TEMP=`expr $index`
+		eval TEMP=\${$TEMP}
+		echo "${TEMP} : unknown argument"
+		echo ""
+		echo "Enter $0 -help for help"
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+#################
+
+
+# INIT
+dtiname=`basename ${DTI%%.*}`
+DIR=`dirname ${DTI}`
+
+if [ $OUTFILE = "NONE" ] ; then
+
+	outdir=${DIR}
+	outname=${dtiname}
+
+else
+
+	outdir=`dirname ${OUTFILE}`
+	outname=`basename ${OUTFILE%%.*}`
+
+fi
+
+echo "output folder: ${outdir}"
+echo "output name: ${outname}"
+
+# Create output directory
+if [ ! -d ${outdir} ]; then mkdir ${outdir}; fi
+
+# Average B0
+echo "Getting bvals from ${BVAL}"
+bvals=`cat ${BVAL}`
+echo "bvals: ${bvals}"
+
+mcnt=0
+chk=0
+bvals_new=""
+Xs_new=""
+Ys_new=""
+Zs_new=""
+Xs=$(cat ${BVEC} | head -1 | tail -1)
+Ys=$(cat ${BVEC} | head -2 | tail -1)
+Zs=$(cat ${BVEC} | head -3 | tail -1)
+for i in ${bvals} #extract all b0s for the series
+do
+	echo "bvals i: ${i}"
+	cnt=`$FSLDIR/bin/zeropad $mcnt 4`
+	echo "cnt: ${cnt}"
+	if [ $i -lt ${b0maxbval} ]; then
+
+		chk=$((${chk} + 1))
+		echo "About to fslroi ${DIR}/${dtiname} ${outdir}/data_b0_${cnt} ${mcnt} 1"
+		$FSLDIR/bin/fslroi ${DIR}/${dtiname} ${outdir}/data_b0_${cnt} ${mcnt} 1
+		tempval=$((${mcnt} + 1))
+
+		echo ${tempval} >> ${outdir}/B0idx.txt
+
+	else
+
+		echo $i
+		echo $cnt
+		Xstmp=`echo $Xs | cut -d " " -f $((${mcnt} + 1))`
+		Xs_new="$Xs_new $Xstmp "
+		Ystmp=`echo $Ys | cut -d " " -f $((${mcnt} + 1))`
+		Ys_new="$Ys_new $Ystmp "
+		Zstmp=`echo $Zs | cut -d " " -f $((${mcnt} + 1))`
+		Zs_new="$Zs_new $Zstmp "
+		bvals_new="$bvals_new $i "
+		keepdyn="$keepdyn ${outdir}/tmpIma${cnt} "
+
+	fi
+	mcnt=$((${mcnt} + 1))
+done
+
+# sort DTI : 1st B0 + directions 
+bvals_new="0 ${bvals_new}"
+Xs_new="0 ${Xs_new}"
+Ys_new="0 ${Ys_new}"
+Zs_new="0 ${Zs_new}"
+
+echo "$bvals_new" > ${outdir}/bvals_new;
+
+echo "$Xs_new" > ${outdir}/bvecs_new;
+echo "$Ys_new" >> ${outdir}/bvecs_new;
+echo "$Zs_new" >> ${outdir}/bvecs_new;
+
+echo "About to fslmerge -t ${outdir}/B0_mean `echo ${outdir}/data_b0_????.nii*`"
+${FSLDIR}/bin/fslmerge -t ${outdir}/B0_mean `echo ${outdir}/data_b0_????.nii*`
+
+echo "About to fslmaths ${outdir}/B0_mean -Tmean ${outdir}/B0_mean"
+${FSLDIR}/bin/fslmaths ${outdir}/B0_mean -Tmean ${outdir}/B0_mean #This is the mean baseline b0 intensity for the series
+${FSLDIR}/bin/imrm ${outdir}/data_b0_????
+
+echo "About to fslsplit ${DTI} ${outdir}/tmpIma -t"
+fslsplit ${DTI} ${outdir}/tmpIma -t
+
+echo "About to fslmerge -t ${outdir}/${outname} ${outdir}/B0_mean ${keepdyn}"
+fslmerge -t ${outdir}/${outname} ${outdir}/B0_mean ${keepdyn}
+
+# remove data
+${FSLDIR}/bin/imrm ${outdir}/tmpIma????
+${FSLDIR}/bin/imrm ${outdir}/B0_mean
+
+if [ "${DIR}" == "${outdir}" ]; then
+
+	mv ${DIR}/bvals ${DIR}/bvals_old
+	mv ${DIR}/bvecs ${DIR}/bvecs_old
+	mv ${DIR}/bvals_new ${DIR}/bvals
+	mv ${DIR}/bvecs_new ${DIR}/bvecs
+
+else
+
+	mv ${outdir}/bvals_new ${outdir}/bvals
+	mv ${outdir}/bvecs_new ${outdir}/bvecs
+
+fi
+
+#Remove negative intensity values (caused by spline interpolation) from final data
+${FSLDIR}/bin/fslmaths ${outdir}/${outname} -thr 0 ${outdir}/${outname}
+${FSLDIR}/bin/bet ${outdir}/${outname} ${outdir}/nodif_brain -m -f 0.1
+$FSLDIR/bin/fslroi ${outdir}/${outname} ${outdir}/nodif 0 1
+
+
+

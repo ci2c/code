@@ -1,0 +1,85 @@
+/*
+    Copyright 2008 Brain Research Institute, Melbourne, Australia
+
+    Written by J-Donald Tournier, 11/05/09.
+
+    This file is part of MRtrix.
+
+    MRtrix is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    MRtrix is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with MRtrix.  If not, see <http://www.gnu.org/licenses/>.
+
+
+*/
+
+#include <fstream>
+#include <sstream>
+#include <glibmm/stringutils.h>
+
+#include "app.h"
+#include "get_set.h"
+#include "dwi/tractography/file.h"
+#include "dwi/tractography/properties.h"
+#include "math/matrix.h"
+
+using namespace MR; 
+using namespace MR::DWI; 
+using namespace std; 
+
+SET_VERSION_DEFAULT;
+
+DESCRIPTION = {
+  "Export mrtrix tracks to a ascii text file",
+  NULL
+};
+
+ARGUMENTS = {
+  Argument ("tracks", "track file", "the input track file in mrtrix format.").type_file (),
+  Argument ("outputPrefix", "output tracks file", "The prefix for the output track files in ascii format. One file per track is generated").type_file(),
+  Argument::End
+};
+
+
+
+OPTIONS = { Option::End };
+
+
+
+
+EXECUTE {
+  Tractography::Properties properties;
+  Tractography::Reader file;
+  file.open (argument[0].get_string(), properties);
+
+  std::vector<Point> tck;
+  int trackCount = 0;
+
+  while (file.next (tck)) {
+
+  	Math::Matrix tracts(tck.size(),3);
+  	for (unsigned int point = 0; point < tck.size(); point++) {
+  		tracts(point, 0) = tck[point][0];
+  		tracts(point, 1) = tck[point][1];
+  		tracts(point, 2) = tck[point][2];
+  	}
+
+    String filename(argument[1].get_string());
+    std::stringstream out;
+    out << trackCount;
+    filename.append(out.str());
+    filename.append(".txt");
+  	tracts.save(filename);
+  	trackCount++;
+  }
+  std::cout << trackCount << " Tracks exported" << std::endl;
+}
+

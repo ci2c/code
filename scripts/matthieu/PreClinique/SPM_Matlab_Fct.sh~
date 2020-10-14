@@ -1,0 +1,157 @@
+#! /bin/bash
+
+if [ $# -lt 14 ]
+then
+
+	echo ""
+	echo "Usage: SPM_Matlab_Fct.sh -fp <inputpetfile> -odp <outputpetdir> -fm <inputmrifile> -odm <outputmridir> -n <niifile> -r <ReferenceImg> -s <SourceImg>"
+	echo ""
+	echo "	-fp	: input file containing paths of PET dicom images "
+	echo ""
+	echo "  -odp	: output PET nifti file directory"
+	echo ""
+	echo "	-fm	: input file containing paths of MRI dicom images "
+	echo ""
+	echo "  -odm	: output MRI nifti file directory"
+	echo ""
+	echo "  -n	: input file containing paths of nifti PET images"
+	echo ""
+	echo "  -r	: input path of the reference image (MRI)"
+	echo ""
+	echo "  -s	: input path of the source image (mean PET)"
+	echo ""
+	echo "Usage: SPM_Matlab_Fct.sh -f <inputfile> -od <outputdir> -n <niifile> -r <ReferenceImg> -s <SourceImg>"
+	echo ""
+	exit 1
+fi							
+
+index=1
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: SPM_Matlab_Fct.sh -fp <inputpetfile> -odp <outputpetdir> -fm <inputmrifile> -odm <outputmridir> -n <niifile> -r <ReferenceImg> -s <SourceImg>"
+		echo ""
+		echo "	-fp	: input file containing paths of PET dicom images "
+		echo ""
+		echo "  -odp	: output PET nifti file directory"
+		echo ""
+		echo "	-fm	: input file containing paths of MRI dicom images "
+		echo ""
+		echo "  -odm	: output MRI nifti file directory"
+		echo ""
+		echo "  -n	: input file containing paths of nifti PET images"
+		echo ""
+		echo "  -r	: input path of the reference image (MRI)"
+		echo ""
+		echo "  -s	: input path of the source image (mean PET)"
+		echo ""
+		echo "Usage: SPM_Matlab_Fct.sh -f <inputfile> -od <outputdir> -n <niifile> -r <ReferenceImg> -s <SourceImg>"
+		echo ""
+		exit 1
+		;;
+	-fp)
+		index=$[$index+1]
+		eval inputpetfile=\${$index}
+		echo "file of PET dicom images : $inputpetfile"
+		;;
+	-odp)
+		index=$[$index+1]
+		eval outputpetdir=\${$index}
+		echo "output PET nifti file directory : ${outputpetdir}"
+		;;
+	-fm)
+		index=$[$index+1]
+		eval inputmrifile=\${$index}
+		echo "file of MRI dicom images : $inputmrifile"
+		;;
+	-odm)
+		index=$[$index+1]
+		eval outputmridir=\${$index}
+		echo "output MRI nifti file directory : ${outputmridir}"
+		;;
+	-n)
+		index=$[$index+1]
+		eval niifile=\${$index}
+		echo "file of nifti PET images : $niifile"
+		;;
+	-r)
+		index=$[$index+1]
+		eval ReferenceImg=\${$index}
+		echo "path of reference image : $ReferenceImg"
+		;;
+	-s)
+		index=$[$index+1]
+		eval SourceImg=\${$index}
+		echo "path of the source image : $SourceImg"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage: SPM_Matlab_Fct.sh -fp <inputpetfile> -odp <outputpetdir> -fm <inputmrifile> -odm <outputmridir> -n <niifile> -r <ReferenceImg> -s <SourceImg>"
+		echo ""
+		echo "	-fp	: input file containing paths of PET dicom images "
+		echo ""
+		echo "  -odp	: output PET nifti file directory"
+		echo ""
+		echo "	-fm	: input file containing paths of MRI dicom images "
+		echo ""
+		echo "  -odm	: output MRI nifti file directory"
+		echo ""
+		echo "  -n	: input file containing paths of nifti PET images"
+		echo ""
+		echo "  -r	: input path of the reference image (MRI)"
+		echo ""
+		echo "  -s	: input path of the source image (mean PET)"
+		echo ""
+		echo "Usage: SPM_Matlab_Fct.sh -f <inputfile> -od <outputdir> -n <niifile> -r <ReferenceImg> -s <SourceImg>"
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${inputpetfile} ]
+then
+	 echo "-fp argument mandatory"
+	 exit 1
+elif [ -z ${outputpetdir} ]
+then
+	 echo "-odp argument mandatory"
+	 exit 1
+elif [ -z ${inputmrifile} ]
+then
+	 echo "-fm argument mandatory"
+	 exit 1
+elif [ -z ${outputmridir} ]
+then
+	 echo "-odm argument mandatory"
+	 exit 1
+elif [ -z ${niifile} ]
+then
+	 echo "-n argument mandatory"
+	 exit 1
+elif [ -z ${ReferenceImg} ]
+then
+	 echo "-r argument mandatory"
+	 exit 1
+elif [ -z ${SourceImg} ]
+then
+	 echo "-s argument mandatory"
+	 exit 1
+fi
+
+/usr/local/matlab11/bin/matlab -nodisplay <<EOF
+
+Dicom_convert('${outputpetdir}','${inputpetfile}');
+Dicom_convert('${outputmridir}','${inputmrifile}');
+MeanPETFiles('${niifile}');
+Coregister_PET_MRI('${ReferenceImg}','${SourceImg}');
+ 
+EOF

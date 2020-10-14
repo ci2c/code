@@ -1,0 +1,512 @@
+#!/bin/bash
+
+if [ $# -lt 4 ]
+then
+	echo ""
+	echo "Usage: CMatrixVolume_mrtrix.sh  -fs  <SubjDir>  -subj  <SubjName>  -parcname  <parcellation.mgz>  -labels <labels_list.txt>  -dti  <dti_eddy_corr>  -bvecs <bvecs>  -bvals <bvals>  -outdir  <outputDirectory>  [-lmax <lmax>  -vs <size_x> <size_y> <size_z>  -N <Nfiber> -no_CM]"
+	echo ""
+	echo "  -fs SubjDir                  : Path to FS output directory (equivalent to SUBJECTS_DIR)"
+	echo "  -subj SubjName               : Subject ID"
+	echo "  -parcname ParcName           : Name of the parcellation to use (i.e. aparc.a2009s+aseg.mgz)"
+	echo "  -labels Labels_list          : Path to a file containing label info (.txt)"
+	echo "  -dti dti_eddy_corr           : DTI eddy corrected volume (.nii or .nii.gz)"
+	echo "  -bvecs bvecs                 : Path to the bvecs file"
+	echo "  -bvals bvals                 : Path to the bvals file"
+	echo "  -outdir outputDirectory      : Output directory"
+	echo " "
+	echo "Options :"
+	echo "  -lmax lmax                   : Maximum harmonic order (default : 8)"
+	echo "  -vs size_x size_y size_z     : Voxel size of DWI supersampling (default : 1 1 1)"
+	echo "  -N Nfiber                    : Number of fibers (default : 150000)"
+	echo "  -no_CM                       : does not produce the connectivity matrix"
+	echo ""
+	echo "Usage: CMatrixVolume_mrtrix.sh  -fs  <SubjDir>  -subj  <SubjName>  -parcname  <parcellation.mgz>  -labels <labels_list.txt>  -dti  <dti_eddy_corr>  -bvecs <bvecs>  -bvals <bvals>  -outdir  <outputDirectory>  [-lmax <lmax>  -vs <size_x> <size_y> <size_z>  -N <Nfiber> -no_CM]"
+	exit 1
+fi
+
+
+#### Inputs ####
+index=1
+echo "------------------------"
+
+# Set default parameters
+lmax=8
+size_x=2
+size_y=2
+size_z=2
+Nfiber=150000
+no_CM=0
+#
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: CMatrixVolume_mrtrix.sh  -fs  <SubjDir>  -subj  <SubjName>  -parcname  <parcellation.mgz>  -labels <labels_list.txt>  -dti  <dti_eddy_corr>  -bvecs <bvecs>  -bvals <bvals>  -outdir  <outputDirectory>  [-lmax <lmax>  -vs <size_x> <size_y> <size_z>  -N <Nfiber> -no_CM]"
+		echo ""
+		echo "  -fs SubjDir                  : Path to FS output directory (equivalent to SUBJECTS_DIR)"
+		echo "  -subj SubjName               : Subject ID"
+		echo "  -parcname ParcName           : Name of the parcellation to use (i.e. aparc.a2009s+aseg.mgz)"
+		echo "  -labels Labels_list          : Path to a file containing label info (.txt)"
+		echo "  -dti dti_eddy_corr           : DTI eddy corrected volume (.nii or .nii.gz)"
+		echo "  -bvecs bvecs                 : Path to the bvecs file"
+		echo "  -bvals bvals                 : Path to the bvals file"
+		echo "  -outdir outputDirectory      : Output directory"
+		echo " "
+		echo "Options :"
+		echo "  -lmax lmax                   : Maximum harmonic order (default : 8)"
+		echo "  -vs size_x size_y size_z     : Voxel size of DWI supersampling (default : 2 2 2)"
+		echo "  -N Nfiber                    : Number of fibers (default : 150000)"
+		echo "  -no_CM                       : does not produce the connectivity matrix"
+		echo ""
+		echo "Usage: CMatrixVolume_mrtrix.sh  -fs  <SubjDir>  -subj  <SubjName>  -parcname  <parcellation.mgz>  -labels <labels_list.txt>  -dti  <dti_eddy_corr>  -bvecs <bvecs>  -bvals <bvals>  -outdir  <outputDirectory>  [-lmax <lmax>  -vs <size_x> <size_y> <size_z>  -N <Nfiber> -no_CM]"
+		exit 1
+		;;
+	-fs)
+		fs=`expr $index + 1`
+		eval fs=\${$fs}
+		echo "  |-------> SubjDir : $fs"
+		index=$[$index+1]
+		;;
+	-parcname)
+		parcname=`expr $index + 1`
+		eval parcname=\${$parcname}
+		echo "  |-------> Parcellation Name : ${parcname}"
+		index=$[$index+1]
+		;;
+	-labels)
+		LOI=`expr $index + 1`
+		eval LOI=\${$LOI}
+		echo "  |-------> Labels list : ${LOI}"
+		index=$[$index+1]
+		;;
+	-subj)
+		subj=`expr $index + 1`
+		eval subj=\${$subj}
+		echo "  |-------> Subject Name : ${subj}"
+		index=$[$index+1]
+		;;
+	-outdir)
+		outdir=`expr $index + 1`
+		eval outdir=\${$outdir}
+		echo "  |-------> Output directory : ${outdir}"
+		index=$[$index+1]
+		;;
+	-dti)
+		dti=`expr $index + 1`
+		eval dti=\${$dti}
+		echo "  |-------> DTI : ${dti}"
+		index=$[$index+1]
+		;;
+	-bvecs)
+		bvecs=`expr $index + 1`
+		eval bvecs=\${$bvecs}
+		echo "  |-------> bvecs : ${bvecs}"
+		index=$[$index+1]
+		;;
+	-bvals)
+		bvals=`expr $index + 1`
+		eval bvals=\${$bvals}
+		echo "  |-------> bvals : ${bvals}"
+		index=$[$index+1]
+		;;
+	-lmax)
+		lmax=`expr $index + 1`
+		eval lmax=\${$lmax}
+		echo "  |-------> Optional lmax : ${lmax}"
+		index=$[$index+1]
+		;;
+	-vs)
+		size_x=`expr $index + 1`
+		eval size_x=\${$size_x}
+		size_y=`expr $index + 2`
+		eval size_y=\${$size_y}
+		size_z=`expr $index + 3`
+		eval size_z=\${$size_z}
+		echo "  |-------> Optional vs : ${size_x} ${size_y} ${size_z}"
+		index=$[$index+3]
+		;;
+	-N)
+		Nfiber=`expr $index + 1`
+		eval Nfiber=\${$Nfiber}
+		echo "  |-------> Optional N : ${Nfiber}"
+		index=$[$index+1]
+		;;
+	-no_CM)
+		no_CM=1
+		echo "  |-------> no_CM activated"
+		;;
+	-*)
+		TEMP=`expr $index`
+		eval TEMP=\${$TEMP}
+		echo "${TEMP} : unknown argument"
+		echo ""
+		echo "Enter $0 -help for help"
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+#################
+
+
+# Check arguments
+if [ ! -e ${fs}/${subj}/mri/${parcname} ]
+then
+	echo "Can not find parcellation file ${fs}/${subj}/mri/${parcname}"
+	exit 1
+fi
+
+if [ ! -e ${LOI} ]
+then
+	echo "Can not find ${LOI}"
+	exit 1
+fi
+
+if [ ! -e ${fib} ]
+then
+	echo "Can not find ${fib}"
+	exit 1
+fi
+
+if [ ! -e ${fs}/${subj} ]
+then
+	echo "Can not find ${fs}/${subj} directory"
+	exit 1
+fi
+
+if [ ! -e ${dti} ]
+then
+	echo "Can not find ${dti}"
+	exit 1
+fi
+
+if [ ! -e ${bvecs} ]
+then
+	echo "Can not find ${bvecs}"
+	exit 1
+fi
+
+if [ ! -e ${bvals} ]
+then
+	echo "Can not find ${bvals}"
+	exit 1
+fi
+
+
+# Set some paths
+DIR=${fs}/${subj}/
+SUBJECTS_DIR=${fs}
+LOG=${outdir}/Get_matrix.log
+
+# Creates output dir
+if [ ! -d ${outdir} ]
+then
+	mkdir ${outdir}
+fi
+
+if [ ! -d ${outdir}/nl_transform ]
+then
+	mkdir ${outdir}/nl_transform
+fi
+
+NLdir=${outdir}/nl_transform
+
+# Remove Log file
+if [ -e ${LOG} ]
+then
+	rm -f ${LOG}
+fi
+
+# Import T1
+mri_convert ${DIR}/mri/T1.mgz ${outdir}/t1_ras.nii --out_orientation RAS >> ${LOG}
+T1=${outdir}/t1_ras.nii
+
+
+# Step 1. Align T1 on DTI
+# Supersample DWI vols
+echo ""
+echo "--------------------------------------------------"
+echo "Supersample DWI"
+echo "mri_convert ${dti} ${outdir}/dti_supersampled.nii -vs ${size_x} ${size_y} ${size_z} -rt cubic"
+do_cmd 1 ${outdir}/dwi_supersampling.touch mri_convert ${dti} ${outdir}/dti_supersampled.nii -vs ${size_x} ${size_y} ${size_z} -rt cubic
+dti=${outdir}/dti_supersampled.nii
+
+# Performs alignment
+echo ""
+echo "--------------------------------------------------"
+echo "Align T1 on DTI"
+echo "NlFit_t1_to_b0.sh -source ${T1} -target ${dti} -o ${NLdir} -newsegment"
+do_cmd 1 ${outdir}/t1_to_dti_nlin.touch NlFit_t1_to_b0.sh -source ${T1} -target ${dti} -o ${NLdir} -no16 -newsegment
+
+# ----------------------------------------------------------------------------------------------------------------
+# Step 2. Label resampling
+
+### Segment & resample each label
+if [ ! -e ${outdir}/resample_labels.touch ]
+then
+
+echo ""
+echo "--------------------------------------------------"
+echo "Resample labels to DTI"
+echo "mri_convert ${DIR}/mri/${parcname} ${outdir}/labels.nii --out_orientation RAS"
+mri_convert ${DIR}/mri/${parcname} ${outdir}/labels.nii --out_orientation RAS
+
+echo "nii2mnc ${outdir}/labels.nii ${outdir}/labels.mnc"
+nii2mnc ${outdir}/labels.nii ${outdir}/labels.mnc
+
+  rm -rf /tmp/loi_temp_$$
+  mkdir /tmp/loi_temp_$$
+
+  loidir=/tmp/loi_temp_$$
+  
+  cp -f ${outdir}/labels.mnc /tmp/labels.mnc
+
+  if [ ! -d ${outdir}/log_dir ]
+  then
+	  mkdir ${outdir}/log_dir
+  fi
+  logdir=${outdir}/log_dir
+
+
+  Nloi=`cat ${LOI} | wc -l`
+
+  i=1
+  while [ ${i} -le ${Nloi} ]
+  do
+	LOI_ID=`sed -n "${i}{p;q}" ${LOI} | awk  '{print $1}'`
+	inf=`echo "${LOI_ID} - 0.5" | bc -l`
+	sup=`echo "${LOI_ID} + 0.5" | bc -l`
+	echo "mincmath /tmp/labels.mnc -segment -const2 ${inf} ${sup} ${loidir}/loi_${LOI_ID}.mnc -clobber"
+	mincmath /tmp/labels.mnc -segment -const2 ${inf} ${sup} ${loidir}/loi_${LOI_ID}.mnc -clobber
+	
+	# qbatch -q fs_q -oe ${logdir} -N j_${LOI_ID} mincresample -like ${NLdir}/source_to_target_nlin.mnc -transformation ${NLdir}/source_to_target_nlin.xfm ${loidir}/loi_${LOI_ID}.mnc ${loidir}/dti_loi_${LOI_ID}.mnc -clobber -tricubic
+	mincresample -like ${NLdir}/source_to_target_nlin.mnc -transformation ${NLdir}/source_to_target_nlin.xfm ${loidir}/loi_${LOI_ID}.mnc ${loidir}/dti_loi_${LOI_ID}.mnc -clobber -tricubic
+	i=$[${i}+1]
+  done
+
+  WaitForJobs.sh j_${LOI_ID}
+
+  sleep 10
+
+  # Import all .mnc file
+  matlab -nodisplay <<EOF
+
+  cd ${loidir}
+  List = SurfStatListDir('dti*.mnc');
+  opt.dtype=4;
+  opt.ext='.nii';
+
+  for i = 1 : length(List)
+      spm_mnc2nifti(char(List(i)), opt);
+  end
+EOF
+
+  # Remove useless .mnc & logdir
+  rm -f ${loidir}/*mnc
+  rm -rf ${logdir}
+
+  # Create label file
+  matlab -nodisplay <<EOF
+
+  cd ${loidir}
+
+  fid = fopen('${LOI}', 'r');
+  T = textscan(fid, '%d %s');
+  lid = double(T{1});
+  fclose(fid);
+  clear T;
+
+  % Load first volume
+  V = spm_vol(['dti_loi_', num2str(lid(1)), '.nii']);
+  [Y,XYZ] = spm_read_vols(V);
+
+  Labels = zeros(size(Y));
+  Max = zeros(size(Y));
+  Labels(Y > 0.01) = lid(1);
+  Max(Y > 0.01) = Y(Y > 0.01);
+
+  % Loop the volumes
+  for i = 2 : length(lid)
+      disp(['Processing step ', num2str(i), ' out of ', num2str(length(lid))]);
+      V = spm_vol(['dti_loi_', num2str(lid(i)), '.nii']);
+      [Y,XYZ] = spm_read_vols(V);
+      Labels( ((Y > 0.01) .* (Y > Max)) ~=0 ) = lid(i);
+      Max( ((Y > 0.01) .* (Y > Max)) ~= 0 ) = Y( ((Y > 0.01) .* (Y > Max)) ~= 0 );
+  end
+
+  V.fname='labels_dti.nii';
+
+  V.dt(1) = 64;
+
+  V = spm_write_vol(V, Labels);
+
+EOF
+
+  mv ${loidir}/labels_dti.nii ${outdir}
+  rm -rf ${loidir} ${outdir}/labels.mnc
+  touch ${outdir}/resample_labels.touch
+fi
+
+
+# Step 3. Performs tractography
+if [ ! -e ${outdir}/tractography_init.touch ]
+then
+	# WM mask
+	# echo "bet ${outdir}/dti_supersampled.nii ${outdir}/dti_supersampled_brain  -f 0.2 -g 0 -m"
+	# bet ${outdir}/dti_supersampled.nii ${outdir}/dti_supersampled_brain  -f 0.2 -g 0 -m
+	# echo "mri_convert ${DIR}/mri/filled.mgz ${outdir}/filled.nii --out_orientation RAS"
+	# mri_convert ${DIR}/mri/filled.mgz ${outdir}/filled.nii --out_orientation RAS
+	
+	# rm -f ${outdir}/filled.mnc
+	# echo "nii2mnc ${outdir}/filled.nii ${outdir}/filled.mnc"
+	# nii2mnc ${outdir}/filled.nii ${outdir}/filled.mnc
+	
+	# echo "mincresample -like ${NLdir}/source_to_target_nlin.mnc -transformation ${NLdir}/source_to_target_nlin.xfm ${outdir}/filled.mnc ${outdir}/filled_dti.mnc -clobber"
+	# mincresample -like ${NLdir}/source_to_target_nlin.mnc -transformation ${NLdir}/source_to_target_nlin.xfm ${outdir}/filled.mnc ${outdir}/filled_dti.mnc -clobber
+	
+	# echo "mincmath ${outdir}/filled_dti.mnc -gt -const 0.1 ${outdir}/filled_dti_bin.mnc -clobber"
+	# mincmath ${outdir}/filled_dti.mnc -gt -const 0.1 ${outdir}/filled_dti_bin.mnc -clobber
+	
+	# echo "mincmorph -successive DD ${outdir}/filled_dti_bin.mnc ${outdir}/filled_dti_dilated.mnc -clobber"
+	# mincmorph -successive DD ${outdir}/filled_dti_bin.mnc ${outdir}/filled_dti_dilated.mnc -clobber
+	
+	echo "mris_fill -r 1 -c ${DIR}/surf/lh.white ${outdir}/lh.white.mgz"
+	mris_fill -r 1 -c ${DIR}/surf/lh.white ${outdir}/lh.white.mgz
+	
+	echo "mris_fill -r 1 -c ${DIR}/surf/rh.white ${outdir}/rh.white.mgz"
+	mris_fill -r 1 -c ${DIR}/surf/rh.white ${outdir}/rh.white.mgz
+	
+	echo "mri_or ${outdir}/lh.white.mgz ${outdir}/rh.white.mgz ${outdir}/white.mgz"
+	mri_or ${outdir}/lh.white.mgz ${outdir}/rh.white.mgz ${outdir}/white.mgz
+	
+	echo "mri_morphology ${outdir}/white.mgz dilate 1 ${outdir}/white_dil.mgz"
+	mri_morphology ${outdir}/white.mgz dilate 1 ${outdir}/white_dil.mgz
+	
+	echo "mri_convert ${outdir}/white_dil.mgz ${outdir}/white_dil.nii --out_orientation RAS"
+	mri_convert ${outdir}/white_dil.mgz ${outdir}/white_dil.nii --out_orientation RAS
+	
+	rm -f ${outdir}/white_dil.mnc
+	echo "nii2mnc ${outdir}/white_dil.nii ${outdir}/white_dil.mnc"
+	nii2mnc ${outdir}/white_dil.nii ${outdir}/white_dil.mnc
+	
+	echo "mincresample -like ${NLdir}/source_to_target_nlin.mnc -transformation ${NLdir}/source_to_target_nlin.xfm ${outdir}/white_dil.mnc ${outdir}/white_dil_dti.mnc -clobber"
+	mincresample -like ${NLdir}/source_to_target_nlin.mnc -transformation ${NLdir}/source_to_target_nlin.xfm ${outdir}/white_dil.mnc ${outdir}/white_dil_dti.mnc -clobber
+	
+	echo "mincmath ${outdir}/white_dil_dti.mnc -gt -const 0.1 ${outdir}/filled_dti_dilated_thr.mnc -clobber"
+	mincmath ${outdir}/white_dil_dti.mnc -gt -const 0.1 ${outdir}/filled_dti_dilated_thr.mnc -clobber
+	
+	echo "mincreshape ${outdir}/filled_dti_dilated_thr.mnc ${outdir}/filled_dti_dilated.mnc -byte -clobber"
+	mincreshape ${outdir}/filled_dti_dilated_thr.mnc ${outdir}/filled_dti_dilated.mnc -byte -clobber
+	
+	rm -f ${outdir}/lh.white.mgz ${outdir}/rh.white.mgz ${outdir}/white.mgz ${outdir}/white_dil.mgz ${outdir}/white_dil.nii ${outdir}/white_dil.mnc ${outdir}/white_dil_dti.mnc
+	
+	
+matlab -nodisplay <<EOF
+cd ${outdir}
+ 
+opt.dtype=4;
+opt.ext='.nii';
+
+spm_mnc2nifti('${outdir}/filled_dti_dilated.mnc', opt);
+EOF
+	
+	mv ${outdir}/filled_dti_dilated.nii ${outdir}/dti_supersampled_brain_mask.nii
+	# rm -f ${outdir}/filled_dti_dilated.mnc
+	# rm -f ${outdir}/filled.nii ${outdir}/filled.mnc ${outdir}/filled_dti_dilated.mnc ${outdir}/filled_dti_bin.mnc ${outdir}/filled_dti.mnc
+	
+	# rm -f ${outdir}/dti_supersampled_brain.nii.gz
+	
+	# gunzip ${outdir}/dti_supersampled_brain_mask.nii.gz
+	
+	# Convert images to .mif
+	dti_mif=${dti%.nii}.mif
+	mask_mif=${outdir}/dti_supersampled_brain_mask.mif
+	rm -f ${dti_mif} ${mask_mif}
+	echo "mrconvert ${dti} ${dti_mif}"
+	mrconvert ${dti} ${dti_mif}
+	echo "mrconvert ${outdir}/dti_supersampled_brain_mask.nii ${mask_mif}"
+	mrconvert ${outdir}/dti_supersampled_brain_mask.nii ${mask_mif}
+	# Make sure the mask is binarized
+	threshold ${mask_mif} -abs 0.0001 ${outdir}/temp_mask.mif
+	mv ${outdir}/temp_mask.mif ${mask_mif}
+	
+	# Prepare bvecs
+	cp ${bvecs} ${outdir}/temp.txt
+	cat ${bvals} >> ${outdir}/temp.txt
+
+matlab -nodisplay <<EOF
+cd ${HOME}
+p = pathdef;
+addpath(p);
+cd ${outdir}
+bvecs_to_mrtrix('${outdir}/temp.txt', '${outdir}/bvecs_mrtrix');
+EOF
+
+	rm -f ${outdir}/temp.txt
+	bvecs_mrtrix=${outdir}/bvecs_mrtrix
+	
+	# Calculate tensors
+	rm -f ${outdir}/dt.mif
+	echo "dwi2tensor ${dti_mif} -grad ${bvecs_mrtrix} ${outdir}/dt.mif"
+	dwi2tensor ${dti_mif} -grad ${bvecs_mrtrix} ${outdir}/dt.mif
+	
+	# Calculate FA
+	rm -f ${outdir}/fa.mif
+	echo "tensor2FA ${outdir}/dt.mif - | mrmult - ${mask_mif} ${outdir}/fa.mif"
+	tensor2FA ${outdir}/dt.mif - | mrmult - ${mask_mif} ${outdir}/fa.mif
+	
+	# Calculate highly anisotropic voxels
+	rm -f ${outdir}/sf.mif
+	echo "erode ${mask_mif} - | erode - - | mrmult ${outdir}/fa.mif - - | threshold - -abs 0.7 ${outdir}/sf.mif"
+	erode ${mask_mif} - | erode - - | mrmult ${outdir}/fa.mif - - | threshold - -abs 0.7 ${outdir}/sf.mif
+	
+	# Estimate response function
+	echo "estimate_response ${dti_mif} -grad ${bvecs_mrtrix} ${outdir}/sf.mif -lmax ${lmax} ${outdir}/response.txt"
+	estimate_response ${dti_mif} -grad ${bvecs_mrtrix} ${outdir}/sf.mif -lmax ${lmax} ${outdir}/response.txt
+	
+	touch ${outdir}/tractography_init.touch
+fi
+
+# Constrained spherical deconvolution
+do_cmd 1 ${outdir}/csdeconv${lmax}.touch csdeconv ${dti_mif} -grad ${bvecs_mrtrix} ${outdir}/response.txt -lmax ${lmax} -mask ${mask_mif} ${outdir}/CSD${lmax}.mif
+
+# Whole brain tractography
+do_cmd 1 ${outdir}/streamstack_${lmax}_${Nfiber}.touch streamtrack SD_PROB ${outdir}/CSD${lmax}.mif -seed ${mask_mif} -mask ${mask_mif} ${outdir}/whole_brain_${lmax}_${Nfiber}.tck -num ${Nfiber}
+
+
+
+if [ ${no_CM} -eq 0 ]
+then
+# Construct connectivity Matrix !! :o)
+echo " "
+echo "---------------------------------"
+echo "Construct connectivity matrix"
+echo "Connectome = getVolumeConnectMatrix(${outdir}/labels_dti.nii, ${outdir}/whole_brain_${lmax}_${Nfiber}.tck, ${LOI}, 30);"
+matlab -nodisplay <<EOF
+cd ${HOME}
+p = pathdef;
+addpath(p);
+cd ${outdir}
+Connectome = getVolumeConnectMatrix('${outdir}/labels_dti.nii', '${outdir}/whole_brain_${lmax}_${Nfiber}.tck', '${LOI}', 30);
+Connectome.fibers = [];
+save Connectome_${subj} Connectome -v7.3
+EOF
+
+if [ ! -f ${outdir}/fa.nii ]
+then
+	mrconvert ${outdir}/fa.mif ${outdir}/fa.nii
+fi
+
+matlab -nodisplay <<EOF
+cd ${HOME}
+p = pathdef;
+addpath(p);
+cd ${outdir}
+load Connectome_${subj}
+Connectome = computeMfa('${outdir}/whole_brain_${lmax}_${Nfiber}.tck', '${outdir}/fa.nii', Connectome, 30);
+save Connectome_${subj} Connectome -v7.3
+EOF
+fi

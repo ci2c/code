@@ -1,0 +1,46 @@
+#!/bin/bash
+
+pat_dir=$1
+cont_dir=$2
+stat_dir=$3
+
+subdiv=10
+degree=12
+numPerms=20000
+signLevel=0.10
+signSteps=10000
+
+if [ $# -lt 3 ]
+then
+	echo ""
+	echo "Stats_shape Group1_directory Group2_directory results_dir"
+	echo
+	exit 1
+fi
+
+if [ ! -d ${stat_dir} ]
+then
+	mkdir -p ${stat_dir}
+fi
+
+echo "Perform Shape statistical analysis on Group 1 $pat_dir and Group 2 $cont_dir"
+echo
+
+echo \# groupID scalingFactor meshfile > ${stat_dir}/stats_file.txt
+for data in `ls -1 ${pat_dir}/*ellalign.meta |sed "/template_SPHARM_ellalign.meta/d"`
+do
+    echo 0 1.0 ${data} >> ${stat_dir}/stats_file.txt	
+done
+
+for data in `ls -1 ${cont_dir}/*ellalign.meta |sed "/template_SPHARM_ellalign.meta/d"`
+do
+    echo 1 1.0 ${data} >> ${stat_dir}/stats_file.txt	
+done
+
+echo "StatNonParamTestPDM ${stat_dir}/stats_file.txt -surfList -numPerms ${numPerms} -signLevel ${signLevel} -signSteps ${signSteps} -out ${stat_dir}/nonParamTest"
+StatNonParamTestPDM ${stat_dir}/stats_file.txt -surfList -numPerms ${numPerms} -signLevel ${signLevel} -signSteps ${signSteps} -out ${stat_dir}/nonParamTest
+
+for mesh in `ls -1 ${stat_dir}/*.meta`
+do
+Meta2VTK ${mesh} ${mesh%.meta}.vtk
+done

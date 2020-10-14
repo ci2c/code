@@ -1,0 +1,118 @@
+#!/bin/bash
+
+SUBJ="comblez"
+FS_PATH="/NAS/tupac/romain/testHRSFC/"
+RS_PATH="${FS_PATH}/${SUBJ}/rs_fmri/"
+DTI_PATH="${FS_PATH}/${SUBJ}/dti/"
+MRI_PATH="${FS_PATH}/${SUBJ}/mri/"
+OUT_PATH="${FS_PATH}/${SUBJ}/connectome/"
+RS_FILE="${RS_PATH}/resting_state.nii"
+LOI_SURFACES="/home/romain/ListOfStruct4Surfaces.txt"
+LOI_VOXELS="/home/romain/ListOfStruct4Voxels.txt"
+Nfiber=1500000
+lmax=6
+VolumeT1="${MRI_PATH}/T1.mgz"
+Segmentation="${FS_PATH}/aparc.a2009s+aseg.mgz"
+BrainMask="${FS_PATH}/brainmask.mgz"
+Whitematter="${FS_PATH}/wm.mgz"
+Surfacelh="${FS_PATH}/${SUBJ}/surf/lh.pial"
+Surfacerh="${FS_PATH}/${SUBJ}/surf/rh.pial"
+
+##################################
+echo "T1"
+##################################
+recon-all -all -sd ${FS_PATH} -subjid ${SUBJ} -nuintensitycor-3T -i ${FS_PATH}/${SUBJ}/T1.nii.gz
+#freeview $VolumeT1 $Whitematter $Segview -f $Segmentation -f $Surfacelh -f $Surfacerh&
+
+#Labe2Surfaces + spharm
+ModelSubCorticalStruct.sh -fs ${FS_PATH} -subj ${SUBJ} -sfile ${LOI_VOXELS} -res 0.5
+find ${FS_PATH}/${SUBJ} -iname "lh.white" | xargs freeview -f
+find ${FS_PATH}/${SUBJ} -iname "rh.white" | xargs freeview -f
+find ${FS_PATH}/${SUBJ} -iname "lh.sphere" | xargs ls -lh	#15 + 1 (rh)
+
+##################################
+echo "DTI"
+##################################
+#dti/dti_back.nii.gz dti/dti.nii.gz dti/dti.bval dti/dti.bvec
+PrepareSurfaceConnectome.sh -fs ${FS_PATH} -subj ${SUBJ} -las
+ls -lh ${DTI_PATH}/whole_brain_6_1500000.tck
+
+getSurfaceConnectome.sh -fs ${FS_PATH} -subj ${SUBJ} -out "Connectome_Struc_Surf.mat"
+find ${DTI_PATH} -iname "Connectome_Struc_Surf_part*" | wc -l
+find ${DTI_PATH} -iname "Connectome_Struc_Surf_part*" | ls -lh 
+ls -lh ${DTI_PATH}/Connectome_Struc_Surf.mat
+
+find ${OUT_PATH} -iname "*_Struc_Voxel_*" | wc -l
+
+##################################
+echo "RestingState"
+##################################
+FMRI_PreprocessingVolumeAndSurface.sh -sd ${FS_PATH} -subj ${SUBJ} -epi ${RS_FILE} -o ${RS_PATH} -fwhmsurf 6 -fwhmvol 6 -acquis interleaved -rmframe 3 -tr 2.4 -doCompCor -doFilt 0.008 0.1 -doSPMNorm -doGMS -v 5.3 -doSBA
+find ${RS_PATH}/run01 -iname "fcarepi_s*" |wc -l #CQ (=16 run01/fcarepi_sc_al.nii...)
+find ${RS_PATH}/run01 -iname "fcarepi.sm6*" | wc -l #CQ (= 6  fcarepi.sm${fwhmsurf}.lh.nii fcarepi.sm${fwhmsurf}.lh.nii...)
+
+#FMRI_ConnectomeBasedOnFreesurferParcellation.sh -sd ${FS_PATH} -subj ${SUBJ} -epi ${RS_PATH}/run01/fcarepi_al.nii.gz -omat Connectome_Fonc_Vox_Surf -odir ${RS_PATH}/resting_state/ -loifs1 ${LOI_VOXELS}
+mri_extract_label ${MRI_PATH}/aparc.a2009s+aseg.mgz 10 11 12 13 17 18 26 49 50 51 52 53 54 58 ${MRI_PATH}/structuresSousCorticales.nii
+fslsplit ${RS_PATH}/run01/fcarepi_al.nii.gz epi_split -t
+numslice=`ls epi_split* | wc -l`
+nameslice='ls'
+for ctrl in `ls epi_split*`
+do
+	mri_convert -i ${RS_PATH}/${ctrl} -o ${RS_PATH}/resliced_${ctrl} -rl ${MRI_PATH}/structuresSousCorticales.nii -rt cubic
+done
+
+matlab -nodisplay <<EOF
+
+cd ${HOME}
+p = pathdef;
+cd ${OUT_PATH}
+conn1=load('${DTI_PATH}/Connectome.mat');
+ConnectomeStruct = sparse(conn1.Connectome.i+1,conn1.Connectome.j+1,ones(size(conn1.Connectome.i)),conn1.Connectome.nx,conn1.Connectome.ny);
+clear conn1;
+
+Connectome = getVolumeConnectMatrix('${MRI_PATH}/aparc.a2009s+aseg.nii', '${DTI_PATH}/whole_brain_${lmax}_${Nfiber}.tck','${LOI_VOXELS}',0);
+Connectome.fibers = [];
+ConnectomeStruct = [ConnectomeStruct Connectome.region(:).selected];
+clear Connectome;
+save ${OUT_PATH}/ConnectomeStruct ConnectomeStruct
+clear ConnectomeStruct;
+
+surf_lh='surf/lh.white.ras';
+surf_rh='surf/rh.white.ras';
+surf = SurfStatReadSurf({[surf_lh], [surf_rh]});
+
+hdr=load_nifti('rs_fmri/run01/fcarepi.sm6.rh.nii.gz');
+data=squeeze(hdr.vol);
+hdr=load_nifti('rs_fmri/run01/fcarepi.sm6.lh.nii.gz');
+data=[data ; squeeze(hdr.vol)];
+P1=(data(surf.tri(:,1),:));
+P2=(data(surf.tri(:,2),:));
+P3=(data(surf.tri(:,3),:));
+resu=mean([P1(:)'; P2(:)'; P3(:)']);
+inciMtrx=reshape(resu,size(P1,1),size(P1,2));
+clear data resu P1 P2 P3;
+
+niftiseg=load_nifti('mri/structuresSousCorticales.nii');
+ind=find(niftiseg.vol);
+files = dir('rs_fmri/resliced_epi_split*');
+cd rs_fmri;
+inciMtrxVox=[];
+%inciMtrx=zeros(size(files,1),size(ind,1));
+for file = files'
+    niftifonc=load_nifti(file.name);
+    inciMtrxVox=[inciMtrx niftifonc.vol(ind)];
+end
+cd ..;
+inciMtrx=[inciMtrx;inciMtrxVox]';
+clear inciMtrxVox;
+
+[~,Cmat] = niak_build_srup(inciMtrx',true);
+Cmat(isnan(Cmat)) = 0;
+Cmat = niak_vec2mat(Cmat,0);
+
+save ${OUT_PATH}/Connectome_Fonc Cmat;
+EOF
+##################################
+echo "Subsample"
+##################################
+/home/romain/SVN/scripts/romain/SubsampleSurfaceConnectome.sh -fs ${FS_PATH} -subj ${SUBJECT_ID}_enc

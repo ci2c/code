@@ -1,0 +1,26 @@
+#!/bin/bash
+# 
+echo "
+*----------------------* 
+* Starting SVN Backup *
+*----------------------*
+
+"
+
+THEDATE=`date +%Y-%m-%d_%H-%M`
+
+echo "Updating svn repository ..."
+cd /home/julien/SVN && svn update
+cd /home/julien
+/home/julien/SVN/scripts/julien/archiving_tool.sh -i /home/julien/SVN/ -comp lbzip2 -cpu 4 -subfolder no
+mv SVN.tar.bz2  /NAS/dumbo/BACKUP3T/svn_backup/svn_backup_${THEDATE}.tar.bz2
+mv SVN.checksum /NAS/dumbo/BACKUP3T/svn_backup/svn_backup_${THEDATE}.checksum
+sudo sed -i -e "s/SVN.tar.bz2/svn_backup_${THEDATE}.tar.bz2/g" /NAS/dumbo/BACKUP3T/svn_backup/svn_backup_${THEDATE}.checksum
+
+echo "Removing older svn backup : keeping 15 days ...
+"
+
+find /NAS/dumbo/BACKUP3T/svn_backup/svn_backup_* -mtime +15 -exec rm {} \;
+
+echo "Backup finished"
+

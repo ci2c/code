@@ -1,0 +1,13 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\shell\dosbox_pati]
+@="&Pati"
+
+[HKEY_CLASSES_ROOT\Directory\shell\dosbox_pati\Command]
+@="cmd.exe /c \"cd \"c:\\pati_linux\" && pati_linux.pl \"%1\"\""
+
+[HKEY_CLASSES_ROOT\Directory\shell\dosbox_pati_cpx]
+@="&Pati_cpx"
+
+[HKEY_CLASSES_ROOT\Directory\shell\dosbox_pati_cpx\Command]
+@="cmd.exe /c \"cd \"c:\\pati_linux\" && pati_linux.pl -cpx \"%1\"\""

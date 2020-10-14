@@ -1,0 +1,198 @@
+#! /bin/bash
+
+#
+# Function Descripton
+#  Show usage information for this script
+#
+
+function usage()
+{
+	cat << EOF
+Usage: DTI_Processing.sh  -sd <subjects_dir>  -subj <subject>  -dti <dti_image>  [-hcp] 
+  -sd                         : SUBJECTS_DIR folder 
+  -subj                       : Subject id
+  -dti                        : dti image (path/.nii.gz)
+  -dti_corr                   : dti_back image (path/.nii.gz)
+Rq les fichiers fournis en argument seront copiés, il faut donc fournir les chemins vers le repertoire data.
+-freesurfer                   : le script créra le dossier dti (qui sera le répertoire de sortie ${SUBJECTS_DIR}/${SUBJECT}/dti) 
+        ainsi que les fichiers dti.nii.gz dti.bval dti.bvec dti_back.nii.gz 
+-hcp                          : le script créra le dossier Diffusion (qui sera le répertoire de sortie ${SUBJECTS_DIR}/${SUBJECT}/Diffusion)
+Options
+  -hcp                        : use of HCP script (default = "-freesurfer")
+EOF
+}
+
+if [ $# -lt 4 ]
+then
+        usage
+fi
+
+HOME=/home/${USER}
+index=1
+useHCP="FALSE"
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	print $arg
+	case "$arg" in
+	-h|-help)
+                usage
+		exit 1
+		;;
+	-sd)
+		index=$[$index+1]
+		eval SubjFolder=\${$index}
+		echo "SUBJECTS_DIR folder : ${SubjFolder}"
+		;;
+	-subj)
+		index=$[$index+1]
+		eval Subject=\${$index}
+		echo "Subject id : ${Subject}"
+		;;
+	-dti)
+		index=$[$index+1]
+		eval DTI=\${$index}
+		echo "dti image : ${DTI}"
+		;;
+	-dti_corr)
+		index=$[$index+1]
+		eval DTI_corr=\${$index}
+		echo "dti corr image : ${T1}"
+		;;
+	-hcp)
+		useHCP="TRUE"
+		echo "use of HCP script"
+		;;
+	-*)
+		eval infile=\${$index}
+                usage
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+
+## Check mandatory arguments
+if [ -z ${DTI} ]
+then
+	 echo "-dti argument mandatory"
+	 exit 1
+fi
+if [ -z ${DTI_corr} ]
+then
+	 echo "-dti_corr argument mandatory"
+	 exit 1
+fi
+if [ -z ${SubjFolder} ]
+then
+	 echo "-sd argument mandatory"
+	 exit 1
+fi
+if [ -z ${Subject} ]
+then
+	 echo "-subj argument mandatory"
+	 exit 1
+fi
+
+# compress if not
+filename=$(basename "${DTI}")
+extension="${filename##*.}"
+if [ "${extension}" == "nii" ]; then gzip -f ${DTI}; DTI=${DTI}.gz; fi
+
+filename=$(basename "${DTI_corr}")
+extension="${filename##*.}"
+if [ "${extension}" == "nii" ]; then gzip -f ${DTI_corr}; DTI=${DTI_corr}.gz; fi
+
+dir=$(dirname ${DTI})
+filename=$(basename -s .nii.gz "${DTI}")
+
+# Processing
+echo -e "\n"
+echo -e "\n Start..."
+
+if [ ! $useHCP = "TRUE" ] ;then
+	
+	#création rép dti
+	if [ ! -d ${SubjFolder}${Subject}/dti ] ; then
+	        mkdir ${SubjFolder}${Subject}/dti;
+	        cp ${DTI} ${SubjFolder}${Subject}/dti/dti.nii.gz;
+	        cp ${DTI_corr} ${SubjFolder}${Subject}/dti/dti_back.nii.gz;
+	        cp ${dir}/${filename}.bval ${SubjFolder}${Subject}/dti/dti.bval;
+	        cp ${dir}/${filename}.bvec ${SubjFolder}${Subject}/dti/dti.bvec;
+	fi
+	
+        if [ ! -e ${SubjFolder}${Subject}/dti/dti_back.nii.gz ] ; then
+	        cp ${DTI_corr} ${SubjFolder}${Subject}/dti/dti_back.nii.gz;
+	fi
+	
+        if [ ! -e ${SubjFolder}${Subject}/dti/dti.nii.gz ] ; then
+	        cp ${DTI_} ${SubjFolder}${Subject}/dti/dti.nii.gz;
+	fi
+	
+		
+        if [ ! -e ${SubjFolder}${Subject}/dti/dti.bval ] ; then
+	        cp ${dir}/${filename}.bval ${SubjFolder}${Subject}/dti/dti.bval;
+	fi
+	
+		
+        if [ ! -e ${SubjFolder}${Subject}/dti/dti.bvec ] ; then
+	        cp ${dir}/${filename}.bvec ${SubjFolder}${Subject}/dti/dti.bvec;
+	fi
+	
+	if [ ! -e ${SubjFolder}${Subject}/dti/dti_back.nii.gz ] && [ ! -e ${SubjFolder}${Subject}/dti/dti_back.nii.gz ] ; then
+	        echo "MERDE"
+	fi
+	
+	echo -e "\n"
+	echo -e "\n Use of PB's pipeline (PB stand for Pierre Besson)"
+	PrepareSurfaceConnectome.sh -fs ${SubjFolder} -subj ${Subject}
+	getSurfaceConnectome.sh -fs ${SubjFolder} -subj ${Subject}
+else
+	echo -e "\n"
+	echo -e "\n Use of HCP pipeline"
+        echo "$@"
+        echo ${HCPPIPEDIR}
+        echo $FSLDIR
+        echo ${FREESURFER_HOME}
+        
+        export FSL_DIR="${FSLDIR}"
+        export HCPPIPEDIR_Templates=${HCPPIPEDIR}/global/templates
+        export HCPPIPEDIR_Bin=${HCPPIPEDIR}/global/binaries
+        export HCPPIPEDIR_Config=${HCPPIPEDIR}/global/config
+        export HCPPIPEDIR_PreFS=${HCPPIPEDIR}/PreFreeSurfer/scripts
+        export HCPPIPEDIR_FS=${HCPPIPEDIR}/FreeSurfer/scripts
+        export HCPPIPEDIR_PostFS=${HCPPIPEDIR}/PostFreeSurfer/scripts
+        export HCPPIPEDIR_fMRISurf=${HCPPIPEDIR}/fMRISurface/scripts
+        export HCPPIPEDIR_fMRIVol=${HCPPIPEDIR}/fMRIVolume/scripts
+        export HCPPIPEDIR_tfMRI=${HCPPIPEDIR}/tfMRI/scripts
+        export HCPPIPEDIR_dMRI=${HCPPIPEDIR}/DiffusionPreprocessing/scripts
+        export HCPPIPEDIR_dMRITract=${HCPPIPEDIR}/DiffusionTractography/scripts
+        export HCPPIPEDIR_Global=${HCPPIPEDIR}/global/scripts
+        export HCPPIPEDIR_tfMRIAnalysis=${HCPPIPEDIR}/TaskfMRIAnalysis/scripts
+        export MSMBin=${HCPPIPEDIR}/MSMBinaries
+                	
+        #commentaire dans /home/romain/SVN/scripts/romain/DTI_HCP_PrePiplines.sh ou dans 
+        #StudyFolder="/NAS/tupac/protocoles/healthy_volunteers/" #Location of Subject folders (named by subjectID)
+        #SubjectID="T02S01"
+        #RawDataDir="${StudyFolder}data/$SubjectID/" 
+        #PosData="${RawDataDir}/dti.nii.gz"
+        #NegData="${RawDataDir}/dti_back.nii.gz"
+        PRINTCOM=""
+        EchoSpacing=0.78
+        PEdir=1 
+        Gdcoeffs="NONE" 
+        
+        local Diff_pre_batch=""
+        Diff_pre_batch+="${HCPPIPEDIR}/DiffusionPreprocessing/DiffPreprocPipeline.sh  "
+	Diff_pre_batch+=" --posData="${DTI}" --negData="${DTI_corr}" "
+	Diff_pre_batch+=" --path="${SubjFolder}" --subject="${Subject}"" 
+	Diff_pre_batch+=" --echospacing="${EchoSpacing}" --PEdir=${PEdir}"
+        Diff_pre_batch+=" --gdcoeffs="${Gdcoeffs}""
+        Diff_pre_batch+=" --printcom=$PRINTCOM"
+
+        echo -e "Diff_pre_batch: ${Diff_pre_batch}"
+	${Diff_pre_batch}
+fi
+

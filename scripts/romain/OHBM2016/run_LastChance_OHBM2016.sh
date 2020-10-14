@@ -1,0 +1,56 @@
+#!/bin/bash
+FS_PATH="/NAS/dumbo/HBC/FS53/"
+
+subjList=/NAS/dumbo/HBC/Freesurfer5.0/SubjList.txt
+#for SUBJECT_ID in `cat ${subjList}`
+#do
+#	if [ ! -e ${FS_PATH}/${SUBJECT_ID}/mri/wOnMNI_aparc.a2009s+aseg.nii.gz ]
+#	then
+#		qbatch -q two_job_q -oe /NAS/dumbo/romain/log -N Warping_${SUBJECT_ID} StructT1_2_MNI.sh ${FS_PATH} ${SUBJECT_ID} 
+#		sleep 2
+#	fi
+#done
+
+#myname=`whoami`
+#nb_job=`qstat -u romain | wc -l`
+#echo "nb_jobs : ${nb_job}"
+#until [ $nb_job -eq 0 ]; do
+#	nb_job=`qstat -u ${myname} | wc -l`
+#	echo "nb_jobs : ${nb_job}"
+#	sleep 600
+#done
+
+#echo `find /NAS/dumbo/HBC/FS53/ -iname "*wOnMNI_aparc.a2009s+aseg*" | wc -l`
+
+FS_PATH="/NAS/dumbo/HBC/"
+for SUBJECT_ID in `cat ${subjList}`
+do
+	if [ ! -e ${FS_PATH}/FreeSurfer5.0/${SUBJECT_ID}/connectome/Connectome_Struc_Voxel.mat ]
+	then
+		qbatch -q one_job_q -oe /NAS/dumbo/romain/log -N Vox_${SUBJECT_ID} GetVoxelConnectivityMatrix.sh ${FS_PATH} ${SUBJECT_ID}
+	fi
+	sleep 3
+done
+
+echo `find /NAS/dumbo/HBC/Freesurfer5.0/ -iname "Connectome_Struc_Voxel.mat" | wc -l`
+
+
+
+
+
+
+#until [ $nb_job -eq 0 ]; do
+#	nb_job=`qstat -u romain | wc -l`
+#	sleep 600
+#done
+
+#if [ -s ${FILE_PATH}/cohorteHCP.txt ]
+#then	
+#	while read SUBJECT_ID
+#	do
+#	if [ -e ${FS_PATH}/${SUBJECT_ID}/connectome/Connectome_Struc_Hybride.mat ]
+#	then
+#		qbatch -q two_job_q -oe /NAS/dumbo/romain/log -N Hybride_${SUBJECT_ID} /home/romain/SVN/scripts/romain/GetHybrideConnectivityMatrix.sh ${FS_PATH} ${SUBJECT_ID} ${DATA_PATH}
+#	fi
+#	sleep 3
+#fi

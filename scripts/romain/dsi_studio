@@ -1,0 +1,31 @@
+#!/bin/bash
+# Reconstruct all src.gz file in the directory
+
+#Generate SRC files from DICOM/NIFTI/2dseq images
+PATH=/NAS/dumbo/protocoles/IRMf_memoire/FS5.3/comblez_enc/dti
+dsi_studio --action=src --source=${PATH}/dti.nii.gz --output=${PATH}/dti.nii.gz > ${PATH}/dsi_studio.txt
+
+# List all src.gz files
+subs=$(ls *.src.gz)
+
+# Reconstruction Parameters
+method=7          # 7 for QSDR
+param0="1.25"
+voxel_res="1"     # 1mm voxels
+thread="16"
+
+for sub in $subs
+do
+    echo
+ dsi_studio --action=rec --thread=${thread} --source=${sub} --method=${method} --param0=${param0} --param1=${voxel_res} --output_jac=1 --output_map=1 --record_odf=1 --reg_method=2
+    echo
+done
+
+
+
+path=C:\dsi_studio_64
+cd F:\HCP\
+dir ?????? /b > file_list.txt
+for /f "delims=" %%x in (file_list.txt) do (
+call 
+)

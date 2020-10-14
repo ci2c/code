@@ -1,0 +1,6 @@
+## U 14.04, pb ouverture gedit
+** (gedit:8315): CRITICAL **: file log.c: line 980: unexpected error: Error calling StartServiceByName for org.gnome.zeitgeist.Engine: GDBus.Error:org.freedesktop.DBus.Error.Spawn.ChildExited: Process /usr/bin/zeitgeist-daemon exited with status 1 (g-dbus-error-quark, 25)
+
+rm ~/.local/share/zeitgeist -R
+
+

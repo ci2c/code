@@ -1,0 +1,170 @@
+#! /bin/bash
+
+if [ $# -lt 4 ]
+then
+	echo ""
+	echo "Usage: RatStudy_Main.sh -id <inputdir> -f <pathfilesubj> -od <outputdir>"
+	echo ""
+	echo "	-id	: input dicom files directory "
+	echo ""
+	echo "  -f	: path of the file subjects.txt "
+	echo ""
+	echo "  -od	: output nofti file directory "
+	echo ""
+	echo "Usage: RatStudy_Main.sh -id <inputdir> -f <pathfilesubj> -od <outputdir>"
+	echo ""
+	exit 1
+fi
+
+index=1
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-id)
+		index=$[$index+1]
+		eval INPUT_DIR=\${$index}
+		echo "input subjects directory : ${INPUT_DIR}"
+		;;
+	-f) 
+		index=$[$index+1]
+		eval FILE_PATH=\${$index}
+		echo "path of the file subjects.txt : ${FILE_PATH}"
+		;;
+	-od)
+		index=$[$index+1]
+		eval OUTPUT_DIR=\${$index}
+		echo "output subjects directory : ${OUTPUT_DIR}"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage: RatStudy_Main.sh -id <inputdir> -f <pathfilesubj> -od <outputdir>"
+		echo ""
+		echo "	-id	: input dicom files directory "
+		echo ""
+		echo "  -f	: path of the file subjects.txt "
+		echo ""
+		echo "  -od	: output nofti file directory "
+		echo ""
+		echo "Usage: RatStudy_Main.sh -id <inputdir> -f <pathfilesubj> -od <outputdir>"
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${INPUT_DIR} ]
+then
+	 echo "-id argument mandatory"
+	 exit 1
+elif [ -z ${FILE_PATH} ]
+then
+	 echo "-f argument mandatory"
+	 exit 1
+elif [ -z ${OUTPUT_DIR} ]
+then
+	 echo "-od argument mandatory"
+	 exit 1
+fi
+
+## Initialisation of constant parameters
+AP=/home/global/ANTs-1.9.x-Linux/bin/
+
+## Creation of the output directories and conversion from Dicom files {PET, MRI} to nifti files
+if [ -e ${FILE_PATH}/subjects.txt ]
+then
+	if [ -s ${FILE_PATH}/subjects.txt ]
+	then	
+		nbsubj=$(cat ${FILE_PATH}/subjects.txt | wc -l)
+		echo $nbsubj
+		while read subject  
+		do   
+			if [ -d ${INPUT_DIR}/${subject} -a -s ${INPUT_DIR}/${subject} ]
+			then 
+				for tp in $(ls ${INPUT_DIR}/${subject})
+				do
+					if [ -d ${INPUT_DIR}/${subject}/${tp}/TEP -a -s ${INPUT_DIR}/${subject}/${tp}/TEP ]				
+					then
+						## Creation of the output directories						
+						mkdir -p ${OUTPUT_DIR}/${subject}/${tp}/TEP
+						
+						## Conversion of Dicom files from PET to nifti file(s)
+						ls ${INPUT_DIR}/${subject}/${tp}/TEP > /tmp/TmpTep
+						nbdfilesp=$(cat /tmp/TmpTep | wc -l)
+						echo $nbdfilesp
+						while read dfilesp
+						do
+							echo "${INPUT_DIR}/${subject}/${tp}/TEP/${dfilesp}" >> /tmp/PathsDFilesPET
+						done < /tmp/TmpTep
+						rm -f /tmp/TmpTep
+						SPM_DICOM_Convert.sh -f /tmp/PathsDFilesPET -od ${OUTPUT_DIR}/${subject}/${tp}/TEP
+						rm -f /tmp/PathsDFilesPET
+
+						# Mean of the PET files (nifti)
+						ls ${OUTPUT_DIR}/${subject}/${tp}/TEP > /tmp/TmpTep
+						nbniifiles=$(cat /tmp/TmpTep | wc -l)
+						echo $nbniifiles
+						while read niifile
+						do
+							echo "${OUTPUT_DIR}/${subject}/${tp}/TEP/${niifile}" >> /tmp/PathsNiiFilesPET
+						done < /tmp/TmpTep
+						rm -f /tmp/TmpTep
+						SPM_Mean_Images.sh -f /tmp/PathsNiiFilesPET
+						rm -f /tmp/PathsNiiFilesPET
+							
+						if [ -d ${INPUT_DIR}/${subject}/${tp}/IRM -a -s ${INPUT_DIR}/${subject}/${tp}/IRM ]
+						then
+							## Creation of the output directories						
+							mkdir ${OUTPUT_DIR}/${subject}/${tp}/{IRM,Coregister}								
+
+							## Conversion of Dicom files from MRI to nifti file(s)
+							ls ${INPUT_DIR}/${subject}/${tp}/IRM > /tmp/TmpIrm
+							nbdfilesm=$(cat /tmp/TmpIrm | wc -l)
+							echo $nbdfilesm
+							while read dfilesm
+							do
+								echo "${INPUT_DIR}/${subject}/${tp}/IRM/${dfilesm}" >> /tmp/PathsDFilesMRI
+							done < /tmp/TmpIrm
+							rm -f /tmp/TmpIrm
+							SPM_DICOM_Convert.sh -f /tmp/PathsDFilesMRI -od ${OUTPUT_DIR}/${subject}/${tp}/IRM
+							rm -f /tmp/PathsDFilesMRI
+
+							## Coregister mean PET image on MRI image
+	# 						InRefImg=${OUTPUT_DIR}/${subject}/${tp}/IRM/*\.nii
+	# 						InSrcImg=${OUTPUT_DIR}/${subject}/${tp}/TEP/cmean*\.nii
+	# 						./SPM_Coregister_PET_MRI.sh -r $InRefImg -s $InSrcImg
+							cp ${OUTPUT_DIR}/${subject}/${tp}/IRM/*.nii ${OUTPUT_DIR}/${subject}/${tp}/Coregister
+							FIm=$(ls ${OUTPUT_DIR}/${subject}/${tp}/IRM/*.nii)
+							MIm=$(ls ${OUTPUT_DIR}/${subject}/${tp}/TEP/mean*.nii)
+	# 						qbatch -N RSM_${subject}_${tp} -oe /home/matthieu/Logdir 
+							ANTS 3 -m MI[${FIm},${MIm}] -o ${OUTPUT_DIR}/${subject}/${tp}/Coregister/MriToPet -i 0
+	# 						WaitForJobs.sh RSM_${subject}_${tp}
+							WarpImageMultiTransform 3 ${MIm} ${OUTPUT_DIR}/${subject}/${tp}/Coregister/TepWarpToMri.nii ${OUTPUT_DIR}/${subject}/${tp}/Coregister/MriToPetAffine.txt -R ${FIm}
+						else
+							echo "Le répertoire ${INPUT_DIR}/${subject}/${tp}/IRM n'existe pas ou est vide" >> ~/LogRats
+						fi
+					else
+						echo "Le répertoire ${INPUT_DIR}/${subject}/${tp}/TEP n'existe pas ou est vide" >> ~/LogRats
+					fi
+				done
+			else
+				echo "Le répertoire ${INPUT_DIR}/${subject} n'existe pas ou est vide" >> ~/LogRats
+			fi
+		done < ${FILE_PATH}/subjects.txt
+	else
+		echo "Le fichier subjects.txt est vide" >> ~/LogRats
+		exit 1	
+	fi	
+else
+	echo "Le fichier subjects.txt n'existe pas" >> ~/LogRats
+	exit 1
+fi
+	
+
+
+
+

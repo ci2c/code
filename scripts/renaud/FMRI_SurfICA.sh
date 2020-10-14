@@ -1,0 +1,233 @@
+#! /bin/bash
+
+if [ $# -lt 18 ]
+then
+	echo ""
+	echo "Usage: FMRI_SurfICA.sh -sd <subjdir>  -subj <name>  -i <datapath>  -TR <value>  -N <value>  -pref <prefix>  -surffwhm <value>  -o <name>  -m <method>"
+	echo ""
+	echo "  -sd                          : Path to subject "
+	echo "  -subj                        : subject "
+	echo "  -i                           : Path to data "
+	echo "  -TR                          : TR value "
+	echo "  -N                           : Number of components "
+	echo "  -pref                        : prefix "
+	echo "  -surffwhm                    : smoothing value "
+	echo "  -o                           : output folder "
+	echo "  -m                           : method type (1: in-house method; 2: fsfast) "
+	echo ""
+	echo "Usage: FMRI_SurfICA.sh -sd <subjdir>  -subj <name>  -i <datapath>  -TR <value>  -N <value>  -pref <prefix>  -surffwhm <value>  -o <name>  -m <method>"
+	echo ""
+	exit 1
+fi
+
+index=1
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: FMRI_SurfICA.sh -sd <subjdir>  -subj <name>  -i <datapath>  -TR <value>  -N <value>  -pref <prefix>  -surffwhm <value>  -o <name>  -m <method>"
+		echo ""
+		echo "  -sd                          : Path to subject "
+		echo "  -subj                        : subject "
+		echo "  -i                           : Path to data "
+		echo "  -TR                          : TR value "
+		echo "  -N                           : Number of components "
+		echo "  -pref                        : prefix "
+		echo "  -surffwhm                    : smoothing value "
+		echo "  -o                           : output folder "
+		echo "  -m                           : method type (1: in-house method; 2: fsfast) "
+		echo ""
+		echo "Usage: FMRI_SurfICA.sh -sd <subjdir>  -subj <name>  -i <datapath>  -TR <value>  -N <value>  -pref <prefix>  -surffwhm <value>  -o <name>  -m <method>"
+		echo ""
+		exit 1
+		;;
+	-sd)
+		index=$[$index+1]
+		eval SUBJECTS_DIR=\${$index}
+		echo "subject path : ${SUBJECTS_DIR}"
+		;;
+	-subj)
+		index=$[$index+1]
+		eval SUBJ=\${$index}
+		echo "subject name : ${SUBJ}"
+		;;
+	-i)
+		index=$[$index+1]
+		eval input=\${$index}
+		echo "data path : ${input}"
+		;;
+	-TR)
+		index=$[$index+1]
+		eval TR=\${$index}
+		echo "TR value : ${TR}"
+		;;
+	-N)
+		index=$[$index+1]
+		eval N=\${$index}
+		echo "number of components : ${N}"
+		;;
+	-pref)
+		index=$[$index+1]
+		eval prefix=\${$index}
+		echo "prefix : ${prefix}"
+		;;
+	-surffwhm)
+		index=$[$index+1]
+		eval surffwhm=\${$index}
+		echo "smoothing : ${surffwhm}"
+		;;
+	-o)
+		index=$[$index+1]
+		eval outdir=\${$index}
+		echo "output folder : ${outdir}"
+		;;
+	-m)
+		index=$[$index+1]
+		eval method=\${$index}
+		echo "method : ${method}"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage: FMRI_SurfICA.sh -sd <subjdir>  -subj <name>  -i <datapath>  -TR <value>  -N <value>  -pref <prefix>  -surffwhm <value>  -o <name>  -m <method>"
+		echo ""
+		echo "  -sd                          : Path to subject "
+		echo "  -subj                        : subject "
+		echo "  -i                           : Path to data "
+		echo "  -TR                          : TR value "
+		echo "  -N                           : Number of components "
+		echo "  -pref                        : prefix "
+		echo "  -surffwhm                    : smoothing value "
+		echo "  -o                           : output folder "
+		echo "  -m                           : method type (1: in-house method; 2: fsfast) "
+		echo ""
+		echo "Usage: FMRI_SurfICA.sh -sd <subjdir>  -subj <name>  -i <datapath>  -TR <value>  -N <value>  -pref <prefix>  -surffwhm <value>  -o <name>  -m <method>"
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${SUBJECTS_DIR} ]
+then
+	 echo "-sd argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${SUBJ} ]
+then
+	 echo "-subj argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${input} ]
+then
+	 echo "-i argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${TR} ]
+then
+	 echo "-TR argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${N} ]
+then
+	 echo "-TR argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${prefix} ]
+then
+	 echo "-prefix argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${surffwhm} ]
+then
+	 echo "-surffwhm argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${outdir} ]
+then
+	 echo "-o argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${method} ]
+then
+	 echo "-m argument mandatory"
+	 exit 1
+fi
+
+## Delete out dir
+if [ -d ${input}/${outdir} ]
+then
+	echo "rm -rf ${input}/${outdir}"
+	rm -rf ${input}/${outdir}
+fi
+
+## Creates output folder
+if [ ! -d ${input}/${outdir} ]
+then
+	echo "mkdir ${input}/${outdir}"
+	mkdir ${input}/${outdir}
+fi
+
+/usr/local/matlab11/bin/matlab -nodisplay <<EOF
+
+% Load Matlab Path
+cd ${HOME}
+p = pathdef;
+addpath(p);
+
+surf      = SurfStatReadSurf([fullfile('${SUBJECTS_DIR}/${SUBJ}','surf/lh.white')]);
+fnumleft  = size(surf.tri,1);
+nbleft    = size(surf.coord,2);
+surf      = SurfStatReadSurf([fullfile('${SUBJECTS_DIR}/${SUBJ}','surf/rh.white')]);
+fnumright = size(surf.tri,1);
+nbright   = size(surf.coord,2);
+clear surf;
+
+if(${method}==1)
+	sica = FMRI_SurfICANew('${input}',${TR},'${prefix}',${N});
+else
+	plh  = fullfile('${input}',['${prefix}' '.lh.nii']);
+	prh  = fullfile('${input}',['${prefix}' '.rh.nii']);
+	sica = FMRI_SurfICA(plh,prh,${TR},${N});
+end
+
+save(fullfile('${input}','${outdir}','sica.mat'),'sica');
+
+mask = 1:size(sica.S,1);
+
+for j = 1:sica.nbcomp
+	sig_c = FMRI_CorrectSignalOnSurface(double(sica.S(:,j)),mask,0.05,1);
+	write_curv(fullfile('${input}','${outdir}',['lh.ica_map_' num2str(j)]),sig_c(1:nbleft),fnumleft);
+	write_curv(fullfile('${input}','${outdir}',['rh.ica_map_' num2str(j)]),sig_c(nbleft+1:end),fnumright);
+end
+
+EOF
+
+
+# Resampling to fsaverage and smoothing
+
+for ((ind = 1; ind <= ${N}; ind += 1))
+do
+	# Left hemisphere
+	mri_surf2surf --srcsubject ${SUBJ} --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage --trghemi lh --trgsurfreg sphere.reg --sval ${input}/${outdir}/lh.ica_map_${ind} --sfmt curv --noreshape --cortex --tval ${input}/${outdir}/lh.fsaverage_ica_map_${ind}.mgh --tfmt curv
+	mris_fwhm --s fsaverage --hemi lh --smooth-only --i ${input}/${outdir}/lh.fsaverage_ica_map_${ind}.mgh --fwhm ${surffwhm} --o ${input}/${outdir}/lh.sm${surffwhm}_fsaverage_ica_map_${ind}.mgh
+	
+	# Right hemisphere
+	mri_surf2surf --srcsubject ${SUBJ} --srchemi rh --srcsurfreg sphere.reg --trgsubject fsaverage --trghemi rh --trgsurfreg sphere.reg --sval ${input}/${outdir}/rh.ica_map_${ind} --sfmt curv --noreshape --cortex --tval ${input}/${outdir}/rh.fsaverage_ica_map_${ind}.mgh --tfmt curv
+	mris_fwhm --s fsaverage --hemi rh --smooth-only --i ${input}/${outdir}/rh.fsaverage_ica_map_${ind}.mgh --fwhm ${surffwhm} --o ${input}/${outdir}/rh.sm${surffwhm}_fsaverage_ica_map_${ind}.mgh
+done
+

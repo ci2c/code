@@ -1,0 +1,29 @@
+#!/bin/bash
+
+
+FS_PATH=$1
+SUBJECT_ID=$2
+DATA_PATH=$3
+
+DTI_PATH="${FS_PATH}/${SUBJECT_ID}/dti/"
+OUT_PATH="${FS_PATH}/${SUBJECT_ID}/connectome/"
+DATA_PATH="${DATA_PATH}/${SUBJECT_ID}/T1w/"
+CORTEX_LOI_and_ROI="/home/romain/cortex_LOI_and_ROI.txt"
+LIST_OF_STRUCT="/home/romain/ListOfStruct.txt"
+
+matlab -nodisplay <<EOF
+
+cd ${OUT_PATH}
+
+cat_fibers(2500000,10000,'${DTI_PATH}','${OUT_PATH}','whole_brain_10_2500000');
+
+ConnectomeVoxSsCor = getVolumeConnectMatrix_VoxelLevel('${DATA_PATH}/aparc.a2009s+aseg.nii.gz','${OUT_PATH}/whole_brain_10_2500000.tck','${LIST_OF_STRUCT}',0);
+ConnectomeVoxSsCor.fibers = [];
+save Connectome_Struc_Voxel_SsCor ConnectomeVoxSsCor;
+clear ConnectomeVoxSsCor;
+    
+ConnectomeVoxCor = getVolumeConnectMatrix_VoxelLevel('${DATA_PATH}/aparc.a2009s+aseg.nii.gz','${OUT_PATH}/whole_brain_10_2500000.tck','${CORTEX_LOI_and_ROI}',0);
+ConnectomeVoxCor.fibers = [];
+save Connectome_Struc_Voxel_Cor ConnectomeVoxCor;
+clear ConnectomeVoxCor;
+EOF

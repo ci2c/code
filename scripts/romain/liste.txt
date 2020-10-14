@@ -1,0 +1,23 @@
+rep/multi-atlas-segmentation-master	segmentation du cerveau rongeur sur atlas
+rep/QAtools_v1.1			outil de freesurfer pour faire du QA à l'échelle du groupe
+rep/QA					outil pour visu rapide QA individuel M. Winkler.
+rep/DiffusionPreprocessing		prettt de diffussion fait par le HCP
+rep/global				????util pour diffusionPreprocessing
+
+seg_image_preclinique			segmentation sur atlas
+tracto_image_preclinique		script pour faire tourner DSI_STUDIO
+CQ_volumes				permet d'extraitre du fichier stat les volume d'une structure et les afficher dans R
+CompareTopologyToolboxes.sh 		charge une matrice d'adjacence et calcul clustring coeff avec trois méthodes
+StructT1_2_MNI.sh 			propagation de contours par recalage elastique (FLIRT/FNIRT)
+GetVoxelConnectivityMatrix.sh		permet de lancer getVoxelConnectivityMatrix sur le cluster
+GetHybrideConnectivityMatrix.sh		
+
+
+
+
+
+
+GetVoxelConnectivityMatrix.sh -dti /NAS/dumbo/HBC/freesurfer5.0/100408/dti/whole_brain_10_2500000_part000 -seg /NAS/dumbo/HBC/FS53/100408/mri/wOnMNI_aparc.a2009s+aseg.nii.gz -roi ~/SVN/scripts/romain/roi_hippo.txt -out structVoxel.mat
+GetHybrideConnectivityMatrix.sh -fs /NAS/dumbo/HBC/freesurfer5.0 -subj 100408 -out structHybride.mat
+GetSurfaceConnectivityMatrix.sh -fs /NAS/dumbo/HBC/freesurfer5.0 -subj 100408 -out structSurface.mat
+

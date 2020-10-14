@@ -1,0 +1,181 @@
+#!/bin/bash
+
+dcmdump_path="/home/star/bin/dcmdump";
+
+export LC_CTYPE=C
+export LANG=C
+
+if [ $# -lt 3 ]
+then
+echo "Usage:  dcm_sort.sh  -i <input folder> -o <output folder>"
+echo "  -i                         : input folder"
+echo "  -o                         : output folder"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Sept , 2014"
+echo "Last Edit - Feb , 2015"
+echo ""
+exit 1
+fi
+
+index=1
+
+while [ $index -le $# ]
+do
+eval arg=\${$index}
+case "$arg" in
+-h|-help)
+echo ""
+echo "Usage:  dcm_sort.sh  -i <input folder> -o <output folder> -t <folder structure type>"
+echo "  -i                         : input folder"
+echo "  -o                         : output folder"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Sept , 2014"
+echo "Last Edit - Feb , 2015"
+exit 1
+;;
+-i)
+index=$[$index+1]
+eval input=\${$index}
+echo "input folder : ${input}"
+;;
+-o)
+index=$[$index+1]
+eval output=\${$index}
+echo "output folder : ${output}"
+;;
+-*)
+eval infile=\${$index}
+echo "${infile} : unknown option"
+echo ""
+echo "Usage:  dcm_sort.sh  -i <input folder> -o <output folder> -t <folder structure type>"
+echo "  -i                         : input folder"
+echo "  -o                         : output folder"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Sept , 2014"
+echo "Last Edit - Feb , 2015"
+echo ""
+exit 1
+;;
+esac
+index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${input} ]
+then
+echo "-i argument mandatory"
+exit 1
+fi
+
+if [ -z ${output} ]
+then
+echo "-o argument mandatory"
+exit 1
+fi
+
+# Le nom patient et le nom d'examen se test sur le premier fichier dicom
+# pour ne pas relire l'info sur chaque fichier
+# pas de source d'erreur ETIAM a déjà classé par examen/patient
+# on sélectionne les extension .dcm, on ne fera pas de test de validité du dicom
+
+
+
+cd ${input}
+current_serie_description_prev=""
+
+# dump dicom info 
+# Warning with dcmdump 3.5 on star : retourn les champs dicom à l'inverse des arguments +P
+first_dcm=`find -name "*dcm"  | head -1`
+info_dicom=$(${dcmdump_path} -M +P "0010,0040" +P "0010,0030" +P "0010,0020" +P "0010,0010" +P "0008,1030" +P "0008,0050" +P "0008,0030" +P "0008,0020" ${first_dcm} | sed -e 's/.*\[\(.*\)\].*/\1/')
+
+#StudyDate 0008,0020
+StudyDate=$(echo "${info_dicom}" | sed -n 1p | sed 's/ /_/g')
+#PatientsName 0010,0010
+PatientsName=$(echo "${info_dicom}" | sed -n 5p)
+current_patient_name=$(echo "${PatientsName}" | sed 's#[ /.*]#_#g')
+#StudyDescription 0008,1030
+StudyDescription=$(echo "${info_dicom}" | sed -n 4p | sed 's#/#_#g')
+current_study=$(echo "${StudyDescription}" | sed 's#[ .*]#_#g')
+#StudyTime 0008,0030
+StudyTime=$(echo "${info_dicom}" | sed -n 2p)
+#PatientID 0010,0020
+PatientID=$(echo "${info_dicom}" | sed -n 6p)
+#AccessessionNumber 0008,0050
+AccessessionNumber=$(echo "${info_dicom}" | sed -n 3p)
+#PatientsBirthDate 0010,0030
+PatientsBirthDate=$(echo "${info_dicom}" | sed -n 7p)
+#PatientsSex 0010,0040 
+PatientsSex=$(echo "${info_dicom}" | sed -n 8p)
+
+# Write patient and study log files
+if [ "${current_study}" != "" ]
+then
+	mkdir -p ${output}${current_patient_name}/${current_study}
+	touch ${output}${current_patient_name}/${current_study}/patient.log
+	echo "${PatientsName}" >> ${output}${current_patient_name}/${current_study}/patient.log
+	echo "${PatientID}" >> ${output}${current_patient_name}/${current_study}/patient.log
+	echo "${PatientsBirthDate}" >> ${output}${current_patient_name}/${current_study}/patient.log
+	echo "${PatientsSex}" >> ${output}${current_patient_name}/${current_study}/patient.log
+
+	printf "${current_patient_name}
+	"
+	printf "     |_ ${StudyDescription}
+	"
+
+	touch ${output}${current_patient_name}/${current_study}/study.log
+	echo "${StudyDescription}" >> ${output}${current_patient_name}/${current_study}/study.log
+	echo "${StudyDate}" >> ${output}${current_patient_name}/${current_study}/study.log
+	echo "${StudyTime}" >> ${output}${current_patient_name}/${current_study}/study.log
+	echo "${AccessessionNumber}" >> ${output}${current_patient_name}/${current_study}/study.log
+fi
+
+
+
+
+
+# Pour chaque dicom
+for dcm in $(find -name "*dcm" | sed '/phMR*/d')
+do
+
+	if [ "${current_study}" != "" ]
+	then
+		# Warning with dcmdump 3.5 on star : retourn les champs dicom à l'inverse des arguments +P
+		info_serie=$(${dcmdump_path} -M +P "0008,103e" +P "0020,0011" ${dcm} | sed -e 's/.*\[\(.*\)\].*/\1/')
+		#SeriesDescription 0008,103e 
+		SeriesDescription=$(echo "${info_serie}" | sed -n 2p)		
+		current_serie_description=$(echo "${SeriesDescription}" | sed 's/*/ETOILE/g' | sed 's#[ /(),.]#_#g' )
+
+		if [ "${current_serie_description}" != "" ]
+		then
+
+			#current_serie_number 0020,0011
+			current_serie_number=$(echo "${info_serie}" | sed -n 1p)
+
+			if [ "${current_serie_description_prev}" != "${current_serie_number}-${current_serie_description}" ]
+			then
+				printf "
+			|_ ${current_serie_number}-${current_serie_description}
+				|_ "
+				# write serie_description log file (if not exist)
+				if [ ! -e  ${output}${current_patient_name}/${current_study}/${current_serie_number}_${current_serie_description}.log ]
+				then
+					SeriesTime=$(${dcmdump_path} -M +P "0008,0031" ${dcm} | sed -e 's/.*\[\(.*\)\].*/\1/') 
+					touch ${output}${current_patient_name}/${current_study}/${current_serie_number}_${current_serie_description}.log
+					echo "${SeriesDescription}" >> ${output}${current_patient_name}/${current_study}/${current_serie_number}_${current_serie_description}.log
+					echo "${SeriesTime}" >> ${output}${current_patient_name}/${current_study}/${current_serie_number}_${current_serie_description}.log
+					echo "${current_serie_number}" >> ${output}${current_patient_name}/${current_study}/${current_serie_number}_${current_serie_description}.log
+				fi #test serie_description.log
+
+			fi # end current_serie_description_prev 
+
+			im[$current_serie_number]=$((${im[$current_serie_number]}+1))
+			printf "${im[$current_serie_number]}|" 
+			current_serie_description_prev=${current_serie_number}-${current_serie_description}
+
+			mkdir -p ${output}${current_patient_name}/${current_study}/${current_serie_number}_${current_serie_description}/
+			cp ${dcm} ${output}${current_patient_name}/${current_study}/${current_serie_number}_${current_serie_description}/ 2>>${output}${current_patient_name}/${current_study}/error.log
+
+		fi # current serie description != ""
+	fi # current_study != ""
+
+done

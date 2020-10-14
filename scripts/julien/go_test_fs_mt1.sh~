@@ -1,0 +1,47 @@
+#!/bin/bash
+
+fs_version=$1
+subj=$2
+data_source=$3
+data_destination=$4
+queu=$5
+
+
+echo "
+
+
+
+
+
+
+
+
+
+
+
+
+
+***************************************************************************************** 
+* FS version is ${fs_version}                                                           
+* source is ${data_source}                                                              
+* destination is ${data_destination}                                                    
+* launch on SGE : ${queu}                                                               
+*****************************************************************************************
+"
+
+cd ${data_source}
+
+
+for volume in $(ls *)
+do
+
+echo "------------------------------------------------------------------------------------------------------------
+ qbatch -q ${queu} -oe /home/julien/log -N ${subj}_${volume%%.*} test_fs_mt1.sh ${fs_version} ${subj} ${data_source} ${data_destination} ${volume}
+"
+#test_fs_mt1.sh ${fs_version} ${subj} ${data_source} ${data_destination} ${volume}
+
+qbatch -q ${queu} -oe /home/julien/log -N ${subj}_${volume%%.*} test_fs_mt1.sh ${fs_version} ${subj} ${data_source} ${data_destination} t1.nii.gz
+
+sleep 5
+
+done

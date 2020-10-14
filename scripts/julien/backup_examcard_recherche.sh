@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "Starting backup ..."
+
+mydate=`date '+%Y%m%d'`
+destination="/NAS/dumbo/BACKUP3T/Sauvegarde-ExamCard/"
+source=" /mnt/examcard_recherche/"
+
+cd ${destination}
+tar -cvf ExamCardDB${mydate}.tar  ${source}
+echo "Compressing ..."
+pbzip2 -f ExamCardDB${mydate}.tar
+
+echo "Backup done"
+

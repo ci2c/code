@@ -1,0 +1,217 @@
+#!/bin/bash
+export LC_CTYPE=C
+export LANG=C
+
+# require lcmodel
+
+
+
+if [ $# -lt 3 ]
+then
+echo "Usage:  spectro_analyse.sh  -i <input par file>"
+echo "	-i		: input sdat file"
+echo "	-o		: output ISO file"
+echo "	-s		: subject name : output/ISO_subject.nii.gz"
+echo "			: if empty subject = get the Patient name in par or dicom file"
+echo " 			: if 'file' keep input filename"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - May , 2015"
+echo ""
+exit 1
+fi
+
+index=1
+
+while [ $index -le $# ]
+do
+eval arg=\${$index}
+case "$arg" in
+-h|-help)
+echo "Usage:  spectro_analyse.sh  -i <input par file>"
+echo "	-i		: input sdat file"
+echo "	-o		: output folder"
+echo "	-s		: subject name : output/ISO_subject.nii.gz"
+echo "			: if empty subject = get the Patient name in par or dicom file"
+echo " 			: if 'file' keep input filename"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - May , 2015"
+echo ""
+exit 1
+;;
+-i)
+index=$[$index+1]
+eval input=\${$index}
+;;
+-o)
+index=$[$index+1]
+eval output=\${$index}
+;;
+-s)
+index=$[$index+1]
+eval subject=\${$index}
+;;
+-*)
+eval infile=\${$index}
+echo "${infile} : unknown option"
+echo ""
+echo "Usage:  spectro_analyse.sh  -i <input par file>"
+echo "	-i		: input sdat file"
+echo "	-o		: output folder"
+echo "	-s		: subject name : output/ISO_subject.nii.gz"
+echo "			: if empty subject = get the Patient name in par or dicom file"
+echo " 			: if 'file' keep input filename"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - May , 2015"
+echo ""
+exit 1
+;;
+esac
+index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${input} ]
+then
+echo "-i argument mandatory"
+exit 1
+fi
+if [ -z ${output} ]
+then
+echo "-o argument mandatory"
+exit 1
+fi
+
+
+
+
+
+
+echo -e "\e[31m
+=================== spectro analyse ========================\e[0m"
+
+if [ ! -d "$output" ]
+then
+	echo "No existing Output folder"
+	exit 1
+
+fi 
+
+if [ -f  ${input} ]
+then
+
+# build temp folder
+input_path=$(dirname ${input})
+input_base=$(basename ${input})
+echo -e "\e[32mpath : \e[0m${input_path}"
+input_base=${input_base%.*}
+echo -e "\e[32minput file without ext : \e[0m${input_base}"
+echo -e "\e[32moutput folder : \e[0m$output"
+echo -e "\e[32msubject : \e[0m$subject"
+echo -e "\e[31m===========================================================\e[0m"
+
+
+# lcmodel localisation
+lcm_path=/home/julien/.lcmodel/bin/
+bin2raw_path=/home/julien/.lcmodel/philips/
+
+lcm_file=$output/${subject}_lcm_file/
+control_file=$lcm_file/${input_base}/${subject}_${input_base}.control
+basis_set_file=/home/julien/.lcmodel/basis-sets/gamma_press_te35_128mhz_144.basis
+
+
+#-----------------------------------------------------------------------------
+
+#      Check for the existence of the SPAR file.
+#      This assumes that the SDAT file has at least 4 characters, since it is  
+# assumed to end in ".sdat".
+#      The SPAR filename must be identical with the SDAT filename, except for 
+# "spar" or "SPAR" in place of the last 4 characters.
+#      Also allowed is the VMS ";" followed by a version number (bad with Unix)
+#
+case $input in
+    *sdat  )       SPAR=`echo $input | sed 's/sdat$/spar/'`  ;;
+    *SDAT  )       SPAR=`echo $input | sed 's/SDAT$/SPAR/'`  ;;
+    *sdat";"*  )   SPAR=`echo $input | sed 's/sdat;/spar;/'`  ;;
+    *SDAT";"*  )   SPAR=`echo $input | sed 's/SDAT;/SPAR;/'`  ;;
+    *  )           SPAR=$input.sdat  ;;
+esac
+
+if [ !  -r  "$SPAR" ]
+then
+    echo "     You have not selected a DICOM file, and the following Philips 
+SDAT file that you selected:
+
+$input
+
+must end in \"sdat\", 
+and there must be an SPAR file with the identical name,
+except with \"spar\" instead of \"sdat\". " 
+    exit 1
+fi
+#-----------------------------------------------------------------------------
+# reading spar file
+EXAM=`awk -F: '/^examination_name/    { print $2 ; exit }' $SPAR | tr -d '\r'`
+EXAM=`echo $EXAM`
+DATE=`awk '/^scan_date/               { print $0 ; exit }' $SPAR | tr -d '\r'`
+DATE=`echo $DATE | cut -d: -f2-`
+DATE=`echo $DATE`
+NAME=`awk -F: '/^patient_name/        { print $2 ; exit }' $SPAR | tr -d '\r'`
+NAME=`echo $NAME`
+BIRTH=`awk -F: '/^patient_birth_date/ { print $2 ; exit }' $SPAR | tr -d '\r'`
+BIRTH=`echo $BIRTH`
+
+TE=`awk -F: '/^echo_time/             { print $2 ; exit }' $SPAR | tr -d '\r'`
+TE_VALUE=`echo "$TE" |\
+           awk '{if ( $1 > 0 )
+                    printf ( "%.2f", $1 ) }' | tr ',' '.'`
+TE_TITLE=`echo "$TE" | awk ' { printf ( "%d", $1 ) }'`
+TR=`awk -F: '/^repetition_time/       { print $2 ; exit }' $SPAR | tr -d '\r'`
+TR_TITLE=`echo "$TR" | awk ' { printf ( "%d", $1 ) }'`
+NS=`awk -F: '/^averages/              { print $2 ; exit }' $SPAR | tr -d '\r'`
+NS_TITLE=`echo "$NS" | awk ' { printf ( "%d", $1 ) }'`
+
+
+
+
+echo "Converting Philips spectro file to lcm RAW file ..."
+
+mkdir -p $lcm_file/${input_base}
+$bin2raw_path/bin2raw $input $lcm_file/${input_base}/ met
+
+
+echo "Building lcm control file ..."
+rm -f $control_file 
+touch $control_file
+
+echo "\$LCMODL " >> $control_file
+echo " deltat= 5.000e-04" >> $control_file
+echo " echot= 37.00" >> $control_file
+echo " filbas= '$basis_set_file'" >> $control_file
+echo " filps= '${output}/${subject}_lcm_file/${subject}_${input_base}.ps'" >> $control_file
+echo " filraw= '${lcm_file}${input_base}/met/RAW'" >> $control_file
+echo " ltable=7, filtab='${output}/${subject}_lcm_file/${subject}_${input_base}.table'" >> $control_file
+echo " lcsv=11, filcsv='${output}/${subject}_lcm_file/${subject}_${input_base}.csv'" >> $control_file
+echo " hzpppm= 1.2775e+02" >> $control_file
+echo " nunfil= 1024" >> $control_file
+echo " ppmend= 0.2" >> $control_file
+echo " ppmst= 4.0" >> $control_file
+echo " title= 'ci2c - NEUROSCLERODERMIE ($DATE) $subject ($BIRTH) - ${input_base} - TE/TR/NS=$TE_TITLE/$TR_TITLE/$NS_TITLE'" >> $control_file
+echo "\$END" >> $control_file
+
+
+echo "LCMODEL working ..."
+
+${lcm_path}lcmodel < $control_file
+
+echo "Patching Data info ..."
+
+sed -i -e "s/ ci2c - //g" ${output}/${subject}_lcm_file/${subject}_${input_base}.table
+sed -i -e "s/INSERM unit 837, \"Development and plasticity of the postnatal brain,\"/Clinical Imaging Core faCility - ci2c - /g" ${output}/${subject}_lcm_file/${subject}_${input_base}.table
+
+sed -i -e "s/ci2c -//g" ${output}/${subject}_lcm_file/${subject}_${input_base}.table
+ci2c - 
+
+
+fi
+
+

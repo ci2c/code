@@ -1,0 +1,469 @@
+#! /bin/bash
+
+if [ $# -lt 6 ]
+then
+	echo ""
+	echo "Usage: T1_Preprocessing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -flair <flair_image>  -qc <folder> ]  "
+	echo ""
+	echo "  -sd                         : SUBJECTS_DIR folder "
+	echo "  -subj                       : Subject id "
+	echo "  -t1                         : t1 image (path/.nii.gz) "
+	echo ""
+	echo "Options "
+	echo "  -t2                         : t2 image (path/.nii.gz) "
+	echo "  -flair                      : flair image (path/.nii.gz) "
+	echo "  -qc                         : quality control folder (Default: NONE)"
+	echo ""
+	echo "Usage: T1_Preprocessing.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -flair <flair_image>  -qc <folder> ] "
+	echo ""
+	exit 1
+fi
+
+USER=`whoami`
+
+# ------------------------------------------------------------------------------
+#  Load Function Libraries
+# ------------------------------------------------------------------------------
+
+source $HCPPIPEDIR/global/scripts/log.shlib  # Logging related functions
+source $HCPPIPEDIR/global/scripts/opts.shlib # Command line option functions
+
+HOME=/home/${USER}
+index=1
+T2wInputImage="NONE"
+FlairInputImage="NONE"
+QCfolder="NONE"
+BrainSize="150"
+FNIRTConfig="${HCPPIPEDIR_Config}/T1_2_MNI152_2mm.cnf"
+
+T1wTemplate="${HCPPIPEDIR_Templates}/MNI152_T1_1mm.nii.gz"
+T1wTemplateBrain="${HCPPIPEDIR_Templates}/MNI152_T1_1mm_brain.nii.gz"
+T1wTemplate2mm="${HCPPIPEDIR_Templates}/MNI152_T1_2mm.nii.gz"
+T2wTemplate="${HCPPIPEDIR_Templates}/MNI152_T2_1mm.nii.gz"
+T2wTemplateBrain="${HCPPIPEDIR_Templates}/MNI152_T2_1mm_brain.nii.gz"
+T2wTemplate2mm="${HCPPIPEDIR_Templates}/MNI152_T2_2mm.nii.gz"
+TemplateMask="${HCPPIPEDIR_Templates}/MNI152_T1_1mm_brain_mask.nii.gz"
+Template2mmMask="${HCPPIPEDIR_Templates}/MNI152_T1_2mm_brain_mask_dil.nii.gz"
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: T1_ProcessingFSBased.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -flair <flair_image>  -qc <folder> ]  "
+		echo ""
+		echo "  -sd                         : SUBJECTS_DIR folder "
+		echo "  -subj                       : Subject id "
+		echo "  -t1                         : t1 image (path/.nii.gz) "
+		echo ""
+		echo "Options "
+		echo "  -t2                         : t2 image (path/.nii.gz) "
+		echo "  -flair                      : flair image (path/.nii.gz) "
+		echo "  -qc                         : quality control folder (Default: NONE)"
+		echo ""
+		echo "Usage: T1_ProcessingFSBased.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -flair <flair_image>  -qc <folder> ] "
+		echo ""
+		exit 1
+		;;
+	-sd)
+		index=$[$index+1]
+		eval StudyFolder=\${$index}
+		echo "SUBJECTS_DIR folder : ${StudyFolder}"
+		;;
+	-subj)
+		index=$[$index+1]
+		eval Subject=\${$index}
+		echo "Subject id : ${Subject}"
+		;;
+	-t1)
+		index=$[$index+1]
+		eval T1wInputImage=\${$index}
+		echo "T1w image : ${T1wInputImage}"
+		;;
+	-t2)
+		index=$[$index+1]
+		eval T2wInputImage=\${$index}
+		echo "T2w image : ${T2wInputImage}"
+		;;
+	-flair)
+		index=$[$index+1]
+		eval FlairInputImage=\${$index}
+		echo "Flair image : ${FlairInputImage}"
+		;;
+	-qc)
+		index=$[$index+1]
+		eval QCfolder=\${$index}
+		echo "QC folder : ${QCfolder}"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage: T1_ProcessingFSBased.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -flair <flair_image>  -qc <folder> ]  "
+		echo ""
+		echo "  -sd                         : SUBJECTS_DIR folder "
+		echo "  -subj                       : Subject id "
+		echo "  -t1                         : t1 image (path/.nii.gz) "
+		echo ""
+		echo "Options "
+		echo "  -t2                         : t2 image (path/.nii.gz) "
+		echo "  -flair                      : flair image (path/.nii.gz) "
+		echo "  -qc                         : quality control folder (Default: NONE)"
+		echo ""
+		echo "Usage: T1_ProcessingFSBased.sh  -sd <subjects_dir>  -subj <subject>  -t1 <t1_image>  [-t2 <t2_image>  -flair <flair_image>  -qc <folder> ] "
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${T1wInputImage} ]
+then
+	 echo "-t1 argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${StudyFolder} ]
+then
+	 echo "-sd argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${Subject} ]
+then
+	 echo "-subj argument mandatory"
+	 exit 1
+fi
+
+
+
+
+echo ""
+echo "T1_preprocessing.sh: start"
+echo ""
+
+# ------------------------------------------------------------------------------
+#  Show Environment Variables
+# ------------------------------------------------------------------------------
+
+echo ""
+echo "FSLDIR: ${FSLDIR}"
+echo "HCPPIPEDIR: ${HCPPIPEDIR}"
+echo "HCPPIPEDIR_Global: ${HCPPIPEDIR_Global}"
+echo "HCPPIPEDIR_PreFS: ${HCPPIPEDIR_PreFS}"
+
+# Naming Conventions
+T1wImage="T1w"
+T1wFolder="T1w" #Location of T1w images
+T2wImage="T2w" 
+T2wFolder="T2w" #Location of T2w images
+FlairImage="Flair" 
+FlairFolder="Flair" #Location of Flair images
+AtlasSpaceFolder="MNINonLinear"
+
+# Build Paths
+T1wFolder=${StudyFolder}/${Subject}/${T1wFolder} 
+T2wFolder=${StudyFolder}/${Subject}/${T2wFolder} 
+FlairFolder=${StudyFolder}/${Subject}/${FlairFolder}
+AtlasSpaceFolder=${StudyFolder}/${Subject}/${AtlasSpaceFolder}
+
+echo "T1wFolder: $T1wFolder"
+echo "T2wFolder: $T2wFolder"
+echo "FlairFolder: $T2wFolder"
+echo "AtlasSpaceFolder: $AtlasSpaceFolder"
+
+if [ ! -e ${AtlasSpaceFolder}/xfms ] ; then
+	echo "mkdir -p ${AtlasSpaceFolder}/xfms/"
+	mkdir -p ${AtlasSpaceFolder}/xfms/
+fi
+
+
+# ------------------------------------------------------------------------------
+#  Loop over the processing for T1w, T2w and flair (just with different names). 
+#  For each modality, perform
+#  - Rigidly align images to MNI Template to create native volume space
+#  - Perform Brain Extraction(FNIRT-based Masking)
+# ------------------------------------------------------------------------------
+
+echo ""
+echo ""
+
+Modalities="T1w"
+if [ $T2wInputImage != "NONE" ] ; then Modalities="${Modalities} T2w"; fi
+if [ $FlairInputImage != "NONE" ] ; then Modalities="${Modalities} flair"; fi
+echo "Modality: ${Modalities}"
+
+for TXw in ${Modalities} ; do
+
+	echo "Processing Modality: " $TXw
+
+	# set up appropriate input variables
+	if [ $TXw = T1w ] ; then
+		TXwInputImages="${T1wInputImage}"
+		TXwFolder=${T1wFolder}
+		TXwImage=${T1wImage}
+		TXwTemplate=${T1wTemplate}
+		TXwTemplate2mm=${T1wTemplate2mm}
+	elif [ $TXw = T2w ] ; then
+		TXwInputImages="${T2wInputImage}"
+		TXwFolder=${T2wFolder}
+		TXwImage=${T2wImage}
+		TXwTemplate=${T2wTemplate}
+		TXwTemplate2mm=${T2wTemplate2mm}
+	else
+		TXwInputImages="${FlairInputImage}"
+		TXwFolder=${FlairFolder}
+		TXwImage=${FlairImage}
+		TXwTemplate=${T2wTemplate}
+		TXwTemplate2mm=${T2wTemplate2mm}
+	fi
+
+	if [ ! -e ${TXwFolder}/xfms ] ; then
+		echo "mkdir -p ${TXwFolder}/xfms/"
+		mkdir -p ${TXwFolder}/xfms/
+	fi
+
+	echo "reorient to MNI"
+	echo "${FSLDIR}/bin/fslreorient2std $TXwInputImages ${TXwFolder}/${TXwImage}"
+	${FSLDIR}/bin/fslreorient2std $TXwInputImages ${TXwFolder}/${TXwImage}
+
+	# ACPC align T1w or T2w image to 0.7mm MNI Template to create native volume space
+	echo ""
+	echo "Aligning ${TXw} image to MNI ${TXw}Template to create native volume space"
+	echo "mkdir -p ${TXwFolder}/ACPCAlignment"
+	mkdir -p ${TXwFolder}/ACPCAlignment
+	echo "${HCPPIPEDIR_PreFS}/ACPCAlignment.sh \
+		--workingdir=${TXwFolder}/ACPCAlignment \
+		--in=${TXwFolder}/${TXwImage} \
+		--ref=${TXwTemplate} \
+		--out=${TXwFolder}/${TXwImage}_acpc \
+		--omat=${TXwFolder}/xfms/acpc.mat \
+		--brainsize=${BrainSize}"
+	${HCPPIPEDIR_PreFS}/ACPCAlignment.sh \
+		--workingdir=${TXwFolder}/ACPCAlignment \
+		--in=${TXwFolder}/${TXwImage} \
+		--ref=${TXwTemplate} \
+		--out=${TXwFolder}/${TXwImage}_acpc \
+		--omat=${TXwFolder}/xfms/acpc.mat \
+		--brainsize=${BrainSize}
+
+	# Brain Extraction(FNIRT-based Masking)
+	echo ""
+	echo "Performing Brain Extraction using FNIRT-based Masking"
+	echo "mkdir -p ${TXwFolder}/BrainExtraction_FNIRTbased"
+	mkdir -p ${TXwFolder}/BrainExtraction_FNIRTbased
+	echo ""
+	${HCPPIPEDIR_PreFS}/BrainExtraction_FNIRTbased.sh \
+		--workingdir=${TXwFolder}/BrainExtraction_FNIRTbased \
+		--in=${TXwFolder}/${TXwImage}_acpc \
+		--ref=${TXwTemplate} \
+		--refmask=${TemplateMask} \
+		--ref2mm=${TXwTemplate2mm} \
+		--ref2mmmask=${Template2mmMask} \
+		--outbrain=${TXwFolder}/${TXwImage}_acpc_brain \
+		--outbrainmask=${TXwFolder}/${TXwImage}_acpc_brain_mask \
+		--fnirtconfig=${FNIRTConfig}
+
+done 
+
+# End of looping over modalities (T1w and T2w)
+
+
+# ------------------------------------------------------------------------------
+#  T2w to T1w Registration and Optional Readout Distortion Correction 
+# ------------------------------------------------------------------------------
+
+echo ""
+echo "T2w to T1w Registration + FLAIR to T1w Registration" 
+echo ""
+
+if [ $T2wInputImage != "NONE" ] ; then
+
+	wdir=${T2wFolder}/T2wToT1wReg
+	if [ -e ${wdir} ] ; then
+		# DO NOT change the following line to "rm -r ${wdir}" because the
+		# chances of something going wrong with that are much higher, and 
+		# rm -r always needs to be treated with the utmost caution
+		rm -r ${T2wFolder}/T2wToT1wReg
+	fi
+
+	echo "mkdir -p ${wdir}"
+	mkdir -p ${wdir}
+
+	echo "T1_T2wToT1wReg.sh \
+		${wdir} \
+		${T1wFolder}/${T1wImage}_acpc \
+		${T1wFolder}/${T1wImage}_acpc_brain \
+		${T2wFolder}/${T2wImage}_acpc \
+		${T2wFolder}/${T2wImage}_acpc_brain \
+		${T1wFolder}/xfms/${T1wImage} \
+		${T1wFolder}/${T2wImage}_acpc \
+		${T1wFolder}/xfms/${T2wImage}_reg"
+	T1_T2wToT1wReg.sh \
+		${wdir} \
+		${T1wFolder}/${T1wImage}_acpc \
+		${T1wFolder}/${T1wImage}_acpc_brain \
+		${T2wFolder}/${T2wImage}_acpc \
+		${T2wFolder}/${T2wImage}_acpc_brain \
+		${T1wFolder}/xfms/${T1wImage} \
+		${T1wFolder}/${T2wImage}_acpc \
+		${T1wFolder}/xfms/${T2wImage}_reg
+
+fi
+
+if [ $FlairInputImage != "NONE" ] ; then
+
+	wdir=${FlairFolder}/FlairToT1wReg
+	if [ -e ${wdir} ] ; then
+		# DO NOT change the following line to "rm -r ${wdir}" because the
+		# chances of something going wrong with that are much higher, and 
+		# rm -r always needs to be treated with the utmost caution
+		rm -r ${FlairFolder}/FlairToT1wReg
+	fi
+
+	echo "mkdir -p ${wdir}"
+	mkdir -p ${wdir}
+
+	echo "T1_T2w2T1wReg.sh \
+		${wdir} \
+		${T1wFolder}/${T1wImage}_acpc \
+		${T1wFolder}/${T1wImage}_acpc_brain \
+		${FlairFolder}/${FlairImage}_acpc \
+		${FlairFolder}/${FlairImage}_acpc_brain \
+		${T1wFolder}/xfms/${T1wImage} \
+		${T1wFolder}/${FlairImage}_acpc \
+		${T1wFolder}/xfms/${FlairImage}_reg"
+	T1_T2w2T1wReg.sh \
+		${wdir} \
+		${T1wFolder}/${T1wImage}_acpc \
+		${T1wFolder}/${T1wImage}_acpc_brain \
+		${FlairFolder}/${FlairImage}_acpc \
+		${FlairFolder}/${FlairImage}_acpc_brain \
+		${T1wFolder}/xfms/${T1wImage} \
+		${T1wFolder}/${FlairImage}_acpc \
+		${T1wFolder}/xfms/${FlairImage}_reg
+
+fi
+
+
+
+# ------------------------------------------------------------------------------
+#  Bias Field Correction: Calculate bias field using square root of the product 
+#  of T1w and T2w iamges.
+# ------------------------------------------------------------------------------
+
+echo ""
+echo "Bias Field Correction"
+echo ""
+
+if [ $T2wInputImage != "NONE" ] ; then
+
+	echo "Performing Bias Field Correction"
+	if [ ! -z ${BiasFieldSmoothingSigma} ] ; then
+		BiasFieldSmoothingSigma="--bfsigma=${BiasFieldSmoothingSigma}"
+	fi 
+
+	echo "mkdir -p ${T1wFolder}/BiasFieldCorrection_sqrtT1wXT1w" 
+	mkdir -p ${T1wFolder}/BiasFieldCorrection_sqrtT1wXT1w 
+
+	echo "${HCPPIPEDIR_PreFS}/BiasFieldCorrection_sqrtT1wXT1w.sh \
+		--workingdir=${T1wFolder}/BiasFieldCorrection_sqrtT1wXT1w \
+		--T1im=${T1wFolder}/${T1wImage}_acpc \
+		--T1brain=${T1wFolder}/${T1wImage}_acpc_brain \
+		--T2im=${T1wFolder}/${T2wImage}_acpc \
+		--obias=${T1wFolder}/BiasField_acpc \
+		--oT1im=${T1wFolder}/${T1wImage}_acpc_restore \
+		--oT1brain=${T1wFolder}/${T1wImage}_acpc_restore_brain \
+		--oT2im=${T1wFolder}/${T2wImage}_acpc_restore \
+		--oT2brain=${T1wFolder}/${T2wImage}_acpc_restore_brain \
+		${BiasFieldSmoothingSigma}"
+
+	${HCPPIPEDIR_PreFS}/BiasFieldCorrection_sqrtT1wXT1w.sh \
+		--workingdir=${T1wFolder}/BiasFieldCorrection_sqrtT1wXT1w \
+		--T1im=${T1wFolder}/${T1wImage}_acpc \
+		--T1brain=${T1wFolder}/${T1wImage}_acpc_brain \
+		--T2im=${T1wFolder}/${T2wImage}_acpc \
+		--obias=${T1wFolder}/BiasField_acpc \
+		--oT1im=${T1wFolder}/${T1wImage}_acpc_restore \
+		--oT1brain=${T1wFolder}/${T1wImage}_acpc_restore_brain \
+		--oT2im=${T1wFolder}/${T2wImage}_acpc_restore \
+		--oT2brain=${T1wFolder}/${T2wImage}_acpc_restore_brain \
+		${BiasFieldSmoothingSigma}
+
+elif [ $FlairInputImage != "NONE" ] ; then
+
+	${FSLDIR}/bin/fslmaths ${T1wFolder}/${FlairImage}_acpc -mas ${T1wFolder}/${T1wImage}_acpc_brain ${T1wFolder}/${FlairImage}_acpc_brain -odt float
+
+fi
+
+
+
+# ------------------------------------------------------------------------------
+#  Atlas Registration to MNI152: FLIRT + FNIRT  
+#  Also applies registration to T1w images 
+# ------------------------------------------------------------------------------
+
+echo ""
+echo "Performing Atlas Registration to MNI152 (FLIRT and FNIRT)"
+echo ""
+
+if [ $T2wInputImage != "NONE" ] ; then 
+	T1wImageUse=${T1wImage}_acpc_restore
+	T1wBrainImageUse=${T1wImage}_acpc_restore_brain
+else 
+	T1wImageUse=${T1wImage}_acpc
+	T1wBrainImageUse=${T1wImage}_acpc_brain
+fi
+
+echo "T1_MNI152Registration_FLIRTandFNIRT.sh \
+	--workingdir=${AtlasSpaceFolder} \
+	--t1=${T1wFolder}/${T1wImageUse} \
+	--t1brain=${T1wFolder}/${T1wBrainImageUse} \
+	--refbrain=${T1wTemplateBrain} \
+	--ref2mm=${T1wTemplate2mm} \
+	--ref2mmmask=${Template2mmMask} \
+	--owarp=${AtlasSpaceFolder}/xfms/acpc_dc2standard.nii.gz \
+	--oinvwarp=${AtlasSpaceFolder}/xfms/standard2acpc_dc.nii.gz \
+	--fnirtconfig=${FNIRTConfig}"
+
+T1_MNI152Registration_FLIRTandFNIRT.sh \
+	--workingdir=${AtlasSpaceFolder} \
+	--t1=${T1wFolder}/${T1wImageUse} \
+	--t1brain=${T1wFolder}/${T1wBrainImageUse} \
+	--refbrain=${T1wTemplateBrain} \
+	--ref2mm=${T1wTemplate2mm} \
+	--ref2mmmask=${Template2mmMask} \
+	--owarp=${AtlasSpaceFolder}/xfms/acpc_dc2standard.nii.gz \
+	--oinvwarp=${AtlasSpaceFolder}/xfms/standard2acpc_dc.nii.gz \
+	--fnirtconfig=${FNIRTConfig}
+
+
+
+# T1w set of warped outputs (brain/whole-head)
+echo "T1w set of warped outputs (brain/whole-head)"
+${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T1wFolder}/${T1wImageUse} -r ${T1wTemplate} -w ${AtlasSpaceFolder}/xfms/acpc_dc2standard -o ${AtlasSpaceFolder}/${T1wImageUse}
+${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T1wBrainImageUse} -r ${T1wTemplate} -w ${AtlasSpaceFolder}/xfms/acpc_dc2standard -o ${AtlasSpaceFolder}/${T1wBrainImageUse}
+${FSLDIR}/bin/fslmaths ${AtlasSpaceFolder}/${T1wImageUse} -mas ${AtlasSpaceFolder}/${T1wBrainImageUse} ${AtlasSpaceFolder}/${T1wBrainImageUse}
+
+if [ $T2wInputImage != "NONE" ] ; then
+	echo "T2w set of warped outputs (brain/whole-head)"
+	${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T1wFolder}/${T2wImage}_acpc_restore -r ${T1wTemplate} -w ${AtlasSpaceFolder}/xfms/acpc_dc2standard -o ${AtlasSpaceFolder}/${T2wImage}_acpc_restore
+	${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T2wImage}_acpc_restore_brain -r ${T1wTemplate} -w ${AtlasSpaceFolder}/xfms/acpc_dc2standard -o ${AtlasSpaceFolder}/${T2wImage}_acpc_restore_brain
+	${FSLDIR}/bin/fslmaths ${AtlasSpaceFolder}/${T2wImage}_acpc_restore -mas ${AtlasSpaceFolder}/${T2wImage}_acpc_restore_brain ${AtlasSpaceFolder}/${T2wImage}_acpc_restore_brain
+fi
+
+if [ $FlairInputImage != "NONE" ] ; then
+	echo "Flair set of warped outputs (brain/whole-head)"
+	${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T1wFolder}/${FlairImage}_acpc -r ${T1wTemplate} -w ${AtlasSpaceFolder}/xfms/acpc_dc2standard -o ${AtlasSpaceFolder}/${FlairImage}_acpc
+	${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${FlairImage}_acpc_brain -r ${T1wTemplate} -w ${AtlasSpaceFolder}/xfms/acpc_dc2standard -o ${AtlasSpaceFolder}/${FlairImage}_acpc_brain
+	${FSLDIR}/bin/fslmaths ${AtlasSpaceFolder}/${FlairImage}_acpc -mas ${AtlasSpaceFolder}/${FlairImage}_acpc_brain ${AtlasSpaceFolder}/${FlairImage}_acpc_brain
+fi
+
+echo ""
+echo ""
+echo "END: T1_Preprocessing.sh"
+
+

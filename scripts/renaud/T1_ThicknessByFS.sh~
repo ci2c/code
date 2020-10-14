@@ -1,0 +1,68 @@
+#! /bin/bash
+
+if [ $# -lt 4 ]
+then
+	echo ""
+	echo "Usage: T1_ThicknessByFS.sh -sd <SUBJECTS_DIR>  -subj <name>  [-fs51] "
+	echo ""
+	echo "  -sd                          : Path to FreeSurfer output directory (i.e. SUBJECTS_DIR)"
+	echo "  -subj                        : prefix "
+	echo "  -fs51                        : freesurfer version 5.1 "
+	echo ""
+	echo "Usage: T1_ThicknessByFS.sh -sd <SUBJECTS_DIR>  -subj <name>  [-fs51] "
+	echo ""
+	exit 1
+fi
+
+index=1
+v51=0
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage: T1_ThicknessByFS.sh -sd <SUBJECTS_DIR>  -subj <name>  [-fs51] "
+		echo ""
+		echo "  -sd                          : Path to FreeSurfer output directory (i.e. SUBJECTS_DIR)"
+		echo "  -subj                        : prefix "
+		echo "  -fs51                        : freesurfer version 5.1 "
+		echo ""
+		echo "Usage: T1_ThicknessByFS.sh -sd <SUBJECTS_DIR>  -subj <name>  [-fs51] "
+		echo ""
+		exit 1
+		;;
+	-sd)
+		index=$[$index+1]
+		eval fs=\${$index}
+		echo "FS_dir : $fs"
+		;;
+	-subj)
+		index=$[$index+1]
+		eval subj=\${$index}
+		echo "subject : $subj"
+		;;
+	-fs51)
+		v51=1
+		echo "freesurfer version: v5.1"
+		;;
+	esac
+	index=$[$index+1]
+done
+
+
+if [ ! -d ${fs}/${subj}/mri ]
+then
+	echo "Exit with error: Please running all steps of recon-all"
+	exit 1
+fi
+
+if [ ${v51} -eq 1 ]
+then
+	echo "Running with version 5.1"
+	export FREESURFER_HOME=${Soft_dir}/freesurfer5.1/
+	. ${FREESURFER_HOME}/SetUpFreeSurfer.sh
+	recon-all -qcache -sd ${fs} -s ${subj} -nuintensitycor-3T -no-isrunning
+fi
+

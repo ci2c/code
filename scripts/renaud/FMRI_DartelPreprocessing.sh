@@ -1,0 +1,213 @@
+#! /bin/bash
+
+if [ $# -lt 18 ]
+then
+	echo ""
+	echo "Usage:  FMRI_DartelPreprocessing.sh  -epi <epi_path>  -anat <anat_path>  -TR <value>  -N <value>  -Nf <value>  -fwhm <value>  -refslice <value>  -rf <value>  -o <output_directory>"
+	echo ""
+	echo "  -epi                         : Path to epi data "
+	echo "  -anat                        : Path to structural data "
+	echo "  -TR                          : TR value "
+	echo "  -N                           : Number of slices "
+	echo "  -Nf                          : Number of frames "
+	echo "  -fwhm                        : smoothing value "
+	echo "  -refslice                    : slice of reference for slice timing correction "
+	echo "  -rf                          : frames to remove "
+	echo "  -o                           : Output directory "
+	echo ""
+	echo "Usage:  FMRI_DartelPreprocessing.sh  -epi <epi_path>  -anat <anat_path>  -TR <value>  -N <value>  -Nf <value>  -fwhm <value>  -refslice <value>  -rf <value>  -o <output_directory>"
+	echo ""
+	echo "Author: Renaud Lopes - CHRU Lille - June 6, 2012"
+	echo ""
+	exit 1
+fi
+
+index=1
+
+while [ $index -le $# ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo ""
+		echo "Usage:  FMRI_DartelPreprocessing.sh  -epi <epi_path>  -anat <anat_path>  -TR <value>  -N <value>  -Nf <value>  -fwhm <value>  -refslice <value>  -rf <value>  -o <output_directory>"
+		echo ""
+		echo "  -epi                         : Path to epi data "
+		echo "  -anat                        : Path to structural data "
+		echo "  -TR                          : TR value "
+		echo "  -N                           : Number of slices "
+		echo "  -Nf                          : Number of frames "
+		echo "  -fwhm                        : smoothing value "
+		echo "  -refslice                    : slice of reference for slice timing correction "
+		echo "  -rf                          : frames to remove "
+		echo "  -o                           : Output directory "
+		echo ""
+		echo "Usage:  FMRI_DartelPreprocessing.sh  -epi <epi_path>  -anat <anat_path>  -TR <value>  -N <value>  -Nf <value>  -fwhm <value>  -refslice <value>  -rf <value>  -o <output_directory>"
+		echo ""
+		echo "Author: Renaud Lopes - CHRU Lille - June 6, 2012"
+		echo ""
+		exit 1
+		;;
+	-epi)
+		index=$[$index+1]
+		eval epi=\${$index}
+		echo "epi data : ${epi}"
+		;;
+	-anat)
+		index=$[$index+1]
+		eval anat=\${$index}
+		echo "anat data : ${anat}"
+		;;
+	-TR)
+		index=$[$index+1]
+		eval TR=\${$index}
+		echo "TR value : ${TR}"
+		;;
+	-N)
+		index=$[$index+1]
+		eval N=\${$index}
+		echo "number of slices : ${N}"
+		;;
+	-Nf)
+		index=$[$index+1]
+		eval Nf=\${$index}
+		echo "number of frames : ${Nf}"
+		;;
+	-fwhm)
+		index=$[$index+1]
+		eval fwhm=\${$index}
+		echo "fwhm : ${fwhm}"
+		;;
+	-refslice)
+		index=$[$index+1]
+		eval refslice=\${$index}
+		echo "slice of reference : ${refslice}"
+		;;
+	-rf)
+		index=$[$index+1]
+		eval remFrames=\${$index}
+		echo "frames to remove : ${remFrames}"
+		;;
+	-o)
+		index=$[$index+1]
+		eval outdir=\${$index}
+		echo "Output directory : ${outdir}"
+		;;
+	-*)
+		eval infile=\${$index}
+		echo "${infile} : unknown option"
+		echo ""
+		echo "Usage:  FMRI_DartelPreprocessing.sh  -epi <epi_path>  -anat <anat_path>  -TR <value>  -N <value>  -Nf <value>  -fwhm <value>  -refslice <value>  -o <output_directory>"
+		echo ""
+		echo "  -epi                         : Path to epi data "
+		echo "  -anat                        : Path to structural data "
+		echo "  -TR                          : TR value "
+		echo "  -N                           : Number of slices "
+		echo "  -Nf                          : Number of frames "
+		echo "  -fwhm                        : smoothing value "
+		echo "  -refslice                    : slice of reference for slice timing correction "
+		echo "  -rf                          : frames to remove "
+		echo "  -o                           : Output directory "
+		echo ""
+		echo "Usage:  FMRI_PreprocessSPM8.sh  -epi <epi_path>  -anat <anat_path>  -TR <value>  -N <value>  -Nf <value>  -fwhm <value>  -refslice <value>  -o <output_directory>"
+		echo ""
+		echo "Author: Renaud Lopes - CHRU Lille - June 6, 2012"
+		echo ""
+		exit 1
+		;;
+	esac
+	index=$[$index+1]
+done
+
+## Check mandatory arguments
+if [ -z ${epi} ]
+then
+	 echo "-epi argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${anat} ]
+then
+	 echo "-anat argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${TR} ]
+then
+	 echo "-TR argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${N} ]
+then
+	 echo "-N argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${Nf} ]
+then
+	 echo "-N argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${fwhm} ]
+then
+	 echo "-fwhm argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${refslice} ]
+then
+	 echo "-refslice argument mandatory"
+	 exit 1
+fi
+
+if [ -z ${outdir} ]
+then
+	 echo "-o argument mandatory"
+	 exit 1
+fi
+
+## Creates out dir
+if [ ! -d ${outdir} ]
+then
+	mkdir ${outdir}
+fi
+
+if [ ! -d "${outdir}"/fmri ]
+then
+	mkdir "${outdir}"/fmri
+fi
+
+if [ ! -d "${outdir}"/anat ]
+then
+	mkdir "${outdir}"/anat
+fi
+
+if [ -f "${outdir}"/fmri/epi_0000.nii ]
+then
+	rm -f ${outdir}/fmri/*
+fi
+
+echo "fslsplit ${epi} "${outdir}"/fmri/epi_ -t"
+fslsplit ${epi} "${outdir}"/fmri/epi_ -t
+echo "gunzip "${outdir}"/fmri/epi_*"
+gunzip "${outdir}"/fmri/epi_*
+
+if [ -f "${outdir}"/anat/t1.nii ]
+then
+	rm -f ${outdir}/anat/*
+fi
+
+echo "mri_convert ${anat} ${outdir}/anat/t1.nii --out_orientation LAS"
+mri_convert ${anat} ${outdir}/anat/t1.nii --out_orientation LAS
+
+matlab -nodisplay <<EOF
+% Load Matlab Path
+cd /home/renaud/
+p = pathdef;
+addpath(p);
+
+FMRI_DartelPreprocessing('${outdir}',${Nf},${N},${TR},${remFrames},[${fwhm} ${fwhm} ${fwhm}]);
+ 
+EOF

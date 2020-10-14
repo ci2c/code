@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo '
+*******************************************************************************
+* Mount Dumbo				                                      *
+******************************************************************************* 
+'
+sudo mkdir -p /NAS/dumbo
+sudo echo "10.11.204.237:/volume1/data /NAS/dumbo nfs defaults,user,auto,noatime,intr      0       0" >> /etc/fstab
+sudo mount -a
+/usr/bin/notify-send "Dumbo mount on /NAS/dumbo"
+
+echo '
+Done
+'

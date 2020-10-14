@@ -1,0 +1,17 @@
+#!/bin/bash
+
+temp_folder=/NAS/tupac/protocoles/WP1_temp/
+cd /NAS/tupac/protocoles/WP1/
+
+for folder in $(ls -d *)
+do
+
+	for analyse_folder in $(ls -d ${folder}/*)
+	do
+/home/julien/SVN/scripts/julien/dcm_order_archive_2.sh -i ${analyse_folder} -o ${temp_folder} -t folder
+
+
+	done
+done
+
+/home/julien/SVN/scripts/julien/dcm_compress_archive.sh ${temp_folder}

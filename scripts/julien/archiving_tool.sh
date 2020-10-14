@@ -1,0 +1,388 @@
+#!/bin/bash
+#
+#
+#
+#              o       __o                
+#            _<|>_   o/  v\               
+#                   /|    <\              
+#     __o__    o    //    o/        __o__ 
+#    />  \    <|>        /v        />  \  
+#  o/         / \       />       o/       
+# <|          \o/     o/        <|        
+#  \\          |     /v          \\       
+#   _\o__</   / \   /> __o__/_    _\o__</ 
+#            
+#            
+#                                  
+##########################################################
+export LC_CTYPE=C
+export LANG=C
+
+echo -e "\e[31m
+=================== Archiving Tool ========================
+\e[0m"
+
+
+
+if [ $# -lt 1 ]
+then
+echo "Usage:  archiving_tool.sh"
+echo "  -i	    : input folder"
+echo "  -comp	    : compressor : bzip2, pbzip2, lbzip2 (default), pxz, pigz"
+echo "  -cpu	    : max cpu to use (default 1 cpu)"
+echo "  -subfolder  : yes|no : compress each subfolders in the input folder"
+echo "                (default no)"
+echo "  -factor     : 1-9 : 1 fast - 9 best (default)"
+echo "  -cmd5       : yes|no : check md5sum after archiving (default yes)"
+echo "  -carchive   : yes|no : check archive file (default yes)"
+echo ""
+echo "Author: Dumont Julien - CHRU Lille - Jul , 2015"
+echo ""
+exit 1
+fi
+
+index=1
+
+while [ $index -le $# ]
+do
+eval arg=\${$index}
+case "$arg" in
+-h|-help)
+echo ""
+echo ""
+echo ""
+exit 1
+;;
+-i)
+index=$[$index+1]
+eval input=\${$index}
+;;
+-comp)
+index=$[$index+1]
+eval compressor=\${$index}
+;;
+-cpu)
+index=$[$index+1]
+eval cpu=\${$index}
+;;
+-factor)
+index=$[$index+1]
+eval factor=\${$index}
+;;
+-subfolder)
+index=$[$index+1]
+eval subfolder=\${$index}
+;;
+-cmd5)
+index=$[$index+1]
+eval cmd5=\${$index}
+;;
+-carchive)
+index=$[$index+1]
+eval carchive=\${$index}
+;;
+-*)
+eval infile=\${$index}
+echo "${infile} : unknown option"
+exit 1
+;;
+esac
+index=$[$index+1]
+done
+
+
+# --------------------------------------------------------------------------------------------------
+# ------------------------ Check arguments ---------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+### Check input
+if [ -z ${input} ]
+then
+	echo "-i argument mandatory"
+	exit 1
+fi
+### Check compressor
+if [ -z ${compressor} ]
+then  
+	compressor='lbzip2'
+fi
+if [ $compressor != 'bzip2' ] && [ $compressor != 'pbzip2' ]  && [ $compressor != 'lbzip2' ] && [ $compressor != 'pxz' ] && [ $compressor != 'pigz' ]
+then  
+	compressor='bzip2'
+else
+	is_installed=$(which ${compressor})
+	if [ -z ${is_installed} ]; then
+		echo "${compressor} is not installed ... switching to bzip2 compressor"
+		compressor='bzip2'
+	fi
+fi
+### Check max CPU usage
+cpucore=$(cat /proc/cpuinfo | grep ^processor | wc -l)
+if [ -z ${cpu} ]; then
+	cpu=1
+fi
+if [ "$(echo ${cpu} | grep "^[ [:digit:] ]*$")" ]; then 
+	cpu=${cpu}
+else
+	cpu=1
+fi 
+
+if [ ${cpu} -gt ${cpucore} ]; then
+	echo "You have only ${cpucore} CPU Core !"
+	cpu=${cpucore}
+fi
+### Check subfolder compression
+if [ -z ${subfolder} ]; then
+	subfolder='no'
+fi
+if [ ${subfolder} != 'no' ] && [ ${subfolder} != 'yes' ]; then
+	subfolder='no'
+fi
+
+### Check compression factor
+if [ -z ${factor} ]; then
+	factor=9
+fi
+if [ "$(echo ${factor} | grep "^[ [:digit:] ]*$")" ]; then 
+	if [ ${factor} -gt 9 ]; then
+		factor=9
+	else
+		factor=${factor}
+	fi
+else
+	factor=9
+fi 
+### Check md5sum
+if [ -z ${cmd5} ]; then
+	cmd5='yes'
+fi
+if [ ${cmd5} != 'no' ] && [ ${cmd5} != 'yes' ]; then
+	cmd5='yes'
+fi
+### Check archive
+if [ -z ${carchive} ]; then
+	carchive='yes'
+fi
+if [ ${carchive} != 'no' ] && [ ${carchive} != 'yes' ]; then
+	carchive='yes'
+fi
+
+
+
+# --------------------------------------------------------------------------------------------------
+# ------------------------ compression prog --------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+
+case $compressor in
+	bzip2)
+		if [ ${cpu} -gt 2 ] ; then
+			echo "bzip2 is not a multithread program"
+			cpu=1		
+		fi
+		ex="bzip2 -f -v -${factor}"
+		ext="bz2"
+		a_test="bzip2 -vt"
+		g_extract=" 2>&1 | grep ': ok' | wc -l"
+		;;
+	pbzip2)
+		ex="pbzip2 -f -p${cpu} -${factor} -v"
+		ext="bz2"
+		a_test="pbzip2 -p${cpu} -vt"
+		g_extract="2>&1 | grep 'Test: OK' | wc -l"
+		;;
+	lbzip2)
+		ex="lbzip2 -f -v -n ${cpu} -${factor}" 
+		ext="bz2"
+		a_test="lbzip2 -n ${cpu} -vt"
+		g_extract="2>&1 | grep 'compression ratio' | wc -l"
+		;;
+	pxz)
+		echo "Setting the number of compressor threads is not allowed but multithread is activated"
+		ex="pxz -f -v -e"
+		cpu='auto'	
+		ext="xz"
+		a_test="pxz  -vt"
+		g_extract="2>&1 | grep ' = ' | wc -l"	
+		;;
+	pigz)
+		ex="pigz -p ${cpu} -v"
+		ext="gz"
+		a_test='gzip -v --test'  ## pigz -t argument return null if archive is ok
+		g_extract="2>&1 | grep 'OK' | wc -l" ## so use gzip to test archive
+		;;
+		
+esac
+
+# --------------------------------------------------------------------------------------------------
+# ------------------------ compression function ----------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+
+
+func_compression()
+{
+	path=$1
+	folder=$2
+	ex=$3
+	ext=$4
+
+
+	cd ${path}
+	echo "Tar folder "
+	tar -cvf ${folder}.tar  ${folder}/	
+	echo "${ex}  ${folder}.tar"
+	#md5sum ${folder}.tar.${ext} > ${folder}.checksum
+
+}
+
+
+
+# --------------------------------------------------------------------------------------------------
+# ------------------------ Start compression -------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+
+if [ -d ${input} ]
+then
+
+	path=$(dirname ${input})"/"
+	folder=$(basename ${input})
+
+	echo "Source                   : ${input}"
+	echo "Path                     : ${path}"
+	echo "Folder                   : ${folder}"
+	echo "CPU Core                 : ${cpucore}"
+	echo "Max CPU Usage            : ${cpu}"
+	echo "Compressor               : ${compressor}"
+	echo "Subfolder Compression    : ${subfolder}"
+	echo "Block size               : ${factor}"
+	echo "Check md5sum             : ${cmd5}"
+	echo "Check archive            : ${carchive}"
+
+echo -e "\e[31m
+===========================================================
+\e[0m"
+
+
+ctar='no'
+
+	cd ${path}
+	
+	if  [ ${subfolder} == 'no' ]; then
+
+	
+		# TAR	
+		echo -e "\e[34mTar folder ${folder} in ${path}\e[0m"
+		tar -cvf ${folder}.tar  ${folder}/
+
+		echo -e "\e[34mTesting TAR archive ...\e[0m"
+		if ! tar tf ${folder}.tar  &> /dev/null; then
+			echo "Error when creating tar archive ${path}/${folder}"
+			echo "Error when creating tar archive ${path}/${folder}" >> ${folder}.error
+		else
+			echo -e "TAR \e[32mok\e[0m"
+	
+			echo -e "\e[34mCompressing with ${compressor}\e[0m"
+	
+			${ex}  ${folder}.tar
+			
+			# create md5sum file				
+			echo -e "\e[34mCreate md5 checksum file ... \e[0m"
+			md5sum ${folder}.tar.${ext} > ${folder}.checksum
+			echo -e "\e[32mDone\e[0m"
+			# check md5sum
+			if  [ ${cmd5} == 'yes' ]; then
+
+			echo -e "\e[34mChecking md5 sum ...\e[0m"			
+
+				is_sum_ok=$(md5sum -c ${folder}.checksum | grep ' OK' | wc -l)
+				if [ ${is_sum_ok} == 1 ]; then
+					echo -e "md5sum ${folder}.tar.${ext}: \e[32mOK\e[0m"
+				else
+					echo "Error when checking md5sum file ${path}/${folder}.checksum"
+					echo "Error when checking md5sum file ${path}/${folder}.checksum" >> ${folder}.error
+				fi
+			fi
+			# checking archive integrity
+			if [ ${carchive} == 'yes' ]; then
+				echo -e "\e[34mChecking archive ...\e[0m"
+				rcarchive=$(eval ${a_test}  ${folder}.tar.${ext}  ${g_extract})
+				if [ ${rcarchive} == 1 ]; then
+					echo -e "Archive ${folder}.tar.${ext}: \e[32mOK\e[0m"
+				else
+					echo "Error when archive file ${path}/${folder}.tar.${ext}"
+					echo "Error when checking md5sum file ${path}/${folder}.tar.${ext}" >> ${folder}.error
+				fi
+			fi
+		fi
+	
+	else
+		
+		cd ${path}/${folder}
+
+		for subfolder in $(ls -d *)
+		do
+			if [ -d ${subfolder} ]; then
+			
+				# TAR	
+				echo -e "\e[34mTar folder ${subfolder} in ${path}/${folder}\e[0m"
+				tar -cvf ${subfolder}.tar  ${subfolder}/
+
+				echo -e "\e[34mTesting TAR archive ...\e[0m"
+				if ! tar tf ${subfolder}.tar  &> /dev/null; then
+					echo "Error when creating tar archive ${path}/${folder}/${subfolder}"
+					echo "Error when creating tar archive ${path}/${folder}/${subfolder}" >> ${subfolder}.error
+				else
+					echo -e "TAR \e[32mok\e[0m"
+	
+					echo -e "\e[34mCompressing with ${compressor}\e[0m"
+	
+					${ex}  ${subfolder}.tar
+
+					# create md5sum file				
+					echo -e "\e[34mCreate md5 checksum file ... \e[0m"
+					md5sum ${subfolder}.tar.${ext} > ${subfolder}.checksum
+					echo -e "\e[32mDone\e[0m"
+					# check md5sum
+					if  [ ${cmd5} == 'yes' ]; then
+
+						echo -e "\e[34mChecking md5 sum ...\e[0m"			
+
+						is_sum_ok=$(md5sum -c ${subfolder}.checksum | grep ' OK' | wc -l)
+						if [ ${is_sum_ok} == 1 ]; then
+							echo -e "md5sum ${subfolder}.tar.${ext}: \e[32mOK\e[0m"
+						else
+							echo "Error when checking md5sum file ${path}/${folder}/${subfolder}.checksum"
+							echo "Error when checking md5sum file ${path}/${folder}/${subfolder}.checksum" >> ${folder}.error
+						fi
+					fi
+					# checking archive integrity
+					if [ ${carchive} == 'yes' ]; then
+						echo -e "\e[34mChecking archive ...\e[0m"
+						rcarchive=$(eval ${a_test}  ${subfolder}.tar.${ext}  ${g_extract})
+						if [ ${rcarchive} == 1 ]; then
+							echo -e "Archive ${subfolder}.tar.${ext}: \e[32mOK\e[0m"
+						else
+							echo "Error when archive file ${path}/${folder}/${subfolder}.tar.${ext}"
+							echo "Error when checking md5sum file ${path}/${folder}/${subfolder}.tar.${ext}" >> ${folder}.error
+						fi
+					fi
+				fi
+
+	
+			fi
+		done
+	fi
+
+
+
+else
+
+echo "Your input is not a folder
+"
+
+
+fi
+
+
+
+
+echo "
+"

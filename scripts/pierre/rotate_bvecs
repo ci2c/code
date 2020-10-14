@@ -1,0 +1,105 @@
+#!/bin/sh
+
+if [ $# -lt 2 ]
+then
+    echo ""
+    echo "Usage: rotate_bvecs <ecclogfile> <bvecs>"
+    echo "will save bvecs file into <bvecs>_old and create new bvecs file called <bvecs>"
+    echo ""
+    exit 1
+fi
+
+ecclog=$1
+bvecs=$2
+
+if [ -f ${bvecs}_old ]
+then
+    echo ""
+    echo "Error: Found that ${bvecs}_old already exists"
+    echo "This probably means that you have run this script before."
+    echo "If you want to force this program to run, please remove the file ${bvecs}_old"
+    echo ""
+    exit 1
+fi
+/bin/cp ${bvecs} ${bvecs}_old
+#/bin/rm -f ${bvecs}
+
+
+# this only works if the bvecs are in lines...
+Xs=$(cat ${bvecs}_old | head -1 | tail -1)
+Ys=$(cat ${bvecs}_old | head -2 | tail -1)
+Zs=$(cat ${bvecs}_old | head -3 | tail -1)
+
+rnd=${$}
+cat ${ecclog} | while read line; do
+    #create a file name from processed volumes
+    matfile=$(remove_ext $(echo ${line} | grep processing | awk '{print $2}'));
+
+    if [ "${matfile}" != "" ] ; then
+           matfile=`basename ${matfile}`
+	   matfile=/tmp/grot${rnd}_${matfile}.mat;
+
+       # following two reads will deal with unimportant lines
+       read line;
+       read line;
+       # read matrix and store it in the current matfile
+       read line;
+       echo ${line} > ${matfile};
+       read line;
+       echo ${line} >> ${matfile};
+       read line;
+       echo ${line} >> ${matfile};
+       read line;
+       echo ${line} >> ${matfile};
+
+    fi
+ done
+
+# now use these files
+i=1
+for matfile in /tmp/grot${rnd}_*.mat;do
+
+    # read that file from disk and extract params
+    output=`avscale --allparams ${matfile} | head -2 | tail -1`
+    m11=`echo $output | awk '{print $1}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    m12=`echo $output | awk '{print $2}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    m13=`echo $output | awk '{print $3}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    
+    output=`avscale --allparams ${matfile} | head -3 | tail -1`
+    m21=`echo $output | awk '{print $1}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    m22=`echo $output | awk '{print $2}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    m23=`echo $output | awk '{print $3}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    
+    output=`avscale --allparams ${matfile} | head -4 | tail -1`
+    m31=`echo $output | awk '{print $1}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    m32=`echo $output | awk '{print $2}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    m33=`echo $output | awk '{print $3}' | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'` 
+    
+    X=`echo $Xs | cut -d " " -f "$i"  | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'`
+    Y=`echo $Ys | cut -d " " -f "$i"  | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'`
+    Z=`echo $Zs | cut -d " " -f "$i"  | sed 's/E/\\*10\\^/' | sed 's/e/\\*10\\^/' | sed 's/+//'`
+    
+    # apply rotation
+    rX=$(echo "scale=7;  ($m11 * $X) + ($m12 * $Y) + ($m13 * $Z)" | bc -l);
+    rY=$(echo "scale=7;  ($m21 * $X) + ($m22 * $Y) + ($m23 * $Z)" | bc -l);
+    rZ=$(echo "scale=7;  ($m31 * $X) + ($m32 * $Y) + ($m33 * $Z)" | bc -l);
+
+    
+    # reformat
+    rX=$(printf "%1.7g" $rX)
+    rY=$(printf "%1.7g" $rY)
+    rZ=$(printf "%1.7g" $rZ)
+    
+    
+    # concatenate
+    rXs=${rXs}${rX}" ";
+    rYs=${rYs}${rY}" ";
+    rZs=${rZs}${rZ}" ";
+    
+    i=$(echo "$i + 1" | bc) ;
+done
+
+echo "$rXs" > ${bvecs};
+echo "$rYs" >> ${bvecs};
+echo "$rZs" >> ${bvecs};
+

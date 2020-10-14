@@ -1,0 +1,105 @@
+#!/bin/sh
+
+cd /NAS/dumbo/protocoles/neurosclerodermie/data/
+
+rm -f /NAS/dumbo/protocoles/neurosclerodermie/spectro_value.csv
+touch /NAS/dumbo/protocoles/neurosclerodermie/spectro_value.csv
+
+echo 'Creating header ...'
+
+echo ",CSOD,CSOD,CSOD,CSOD,CSOG,CSOG,CSOG,CSOG,NGD,NGD,NGG,NGG" >> /NAS/dumbo/protocoles/neurosclerodermie/spectro_value.csv
+echo "ID,GPC+PCh/Cr+PCr,NAA+NAAG/Cr+PCr,Glu+Gln/Cr+PCr,Ins/Cr+PCr,GPC+PCh/Cr+PCr,NAA+NAAG/Cr+PCr,Glu+Gln/Cr+PCr,Ins/Cr+PCr,GPC+PCh/Cr+PCr,NAA+NAG/Cr+PCr,GPC+PCh/Cr+PCr,NAA+NAG/Cr+PCr" >> /NAS/dumbo/protocoles/neurosclerodermie/spectro_value.csv
+
+for subject in $(ls -d *)
+do
+
+echo "Extracting subject : ${subject}"
+	
+	cd /NAS/dumbo/protocoles/neurosclerodermie/output/${subject}_lcm_file/
+
+echo "      |_ Extracting CSO D"
+csod_gpc=$(cat ${subject}_CSO_D.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $csod_gpc"
+csod_naa=$(cat ${subject}_CSO_D.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $csod_naa"		
+csod_glu=$(cat ${subject}_CSO_D.table | grep "Glu+Gln" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Glu+Gln : $csod_glu"
+csod_ins=$(cat ${subject}_CSO_D.table | grep "Ins" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Ins : $csod_ins"
+
+echo "      |_ Extracting CSO G"
+csog_gpc=$(cat ${subject}_CSO_G.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $csog_gpc"
+csog_naa=$(cat ${subject}_CSO_G.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $csog_naa"		
+csog_glu=$(cat ${subject}_CSO_G.table | grep "Glu+Gln" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Glu+Gln : $csog_glu"
+csog_ins=$(cat ${subject}_CSO_G.table | grep "Ins" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Ins : $csog_ins"
+#| grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4
+
+echo "      |_ Extracting NG D"
+ngd_gpc=$(cat ${subject}_NG_D.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $ngd_gpc"
+ngd_naa=$(cat ${subject}_NG_D.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $ngd_naa"	
+
+echo "      |_ Extracting NG G"
+ngg_gpc=$(cat ${subject}_NG_G.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $ngg_gpc"
+ngg_naa=$(cat ${subject}_NG_G.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $ngg_naa"
+
+echo "$subject,$csod_gpc,$csod_naa,$csod_glu,$csod_ins,$csog_gpc,$csog_naa,$csog_glu,$csog_ins,$ngd_gpc,$ngd_naa,$ngg_gpc,$ngg_naa" >> /NAS/dumbo/protocoles/neurosclerodermie/spectro_value.csv
+
+done
+
+
+cd /home/notorious/NAS/julien/Neurosclerodermie/Neurosclerodermie/ROUEN/data
+
+for subject in $(ls -d *)
+do
+
+echo "Extracting subject : ${subject}"
+	
+	cd /home/notorious/NAS/julien/Neurosclerodermie/Neurosclerodermie/ROUEN/data/${subject}
+	
+
+echo "      |_ Extracting CSO D"
+csod_gpc=$(cat ${subject}_CSO_D.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $csod_gpc"
+csod_naa=$(cat ${subject}_CSO_D.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $csod_naa"		
+csod_glu=$(cat ${subject}_CSO_D.table | grep "Glu+Gln" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Glu+Gln : $csod_glu"
+csod_ins=$(cat ${subject}_CSO_D.table | grep "Ins" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Ins : $csod_ins"
+
+echo "      |_ Extracting CSO G"
+csog_gpc=$(cat ${subject}_CSO_G.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $csog_gpc"
+csog_naa=$(cat ${subject}_CSO_G.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $csog_naa"		
+csog_glu=$(cat ${subject}_CSO_G.table | grep "Glu+Gln" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Glu+Gln : $csog_glu"
+csog_ins=$(cat ${subject}_CSO_G.table | grep "Ins" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ Ins : $csog_ins"
+#| grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4
+
+echo "      |_ Extracting NG D"
+ngd_gpc=$(cat ${subject}_NG_D.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $ngd_gpc"
+ngd_naa=$(cat ${subject}_NG_D.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $ngd_naa"	
+
+echo "      |_ Extracting NG G"
+ngg_gpc=$(cat ${subject}_NG_G.table | grep "GPC+PCh" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ GPC+PCh : $ngg_gpc"
+ngg_naa=$(cat ${subject}_NG_G.table | grep "NAA+NAAG" | sed "s/\ \ */\ /g" | cut -d ' ' -f 4 )
+echo "      |       |_ NAA+NAAG : $ngg_naa"
+
+echo "$subject,$csod_gpc,$csod_naa,$csod_glu,$csod_ins,$csog_gpc,$csog_naa,$csog_glu,$csog_ins,$ngd_gpc,$ngd_naa,$ngg_gpc,$ngg_naa" >> /NAS/dumbo/protocoles/neurosclerodermie/spectro_value.csv
+
+done
+
+

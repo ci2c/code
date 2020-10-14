@@ -1,0 +1,96 @@
+#!/bin/bash
+
+if [ $# -lt 2 ]
+then
+	echo "Usage: qbatch [options] command_line"
+	echo ""
+	echo "  options :"
+	echo "    -N  : job_name (default STDIN)"
+	echo "    -q  : queue name (default fs_q)"
+	echo "    -oe : log directory (default ${HOME})"
+	echo "    -a  : start date : MMDDhhmm (default now)"
+	echo " "
+	echo "  command_line   :  Command line to execute"
+	exit 1
+fi
+
+# Get arguments
+index=1
+N="STDIN"
+q="fs_q"
+oe=${HOME}
+l_index=1
+a=""
+while [ $index -le 6 ]
+do
+	eval arg=\${$index}
+	case "$arg" in
+	-h|-help)
+		echo "Usage: qbatch [options] command_line"
+		echo ""
+		echo "  options :"
+		echo "    -N  : job_name (default STDIN)"
+		echo "    -q  : queue name (default fs_q)"
+		echo "    -oe : log directory (default ${HOME})"
+		echo "    -a  : start date : MMDDhhmm (default now)"
+		echo " "
+		echo "  command_line   :  Command line to execute"
+		exit 1
+		;;
+	-N)
+		N=`expr $index + 1`
+		eval N=\${$N}
+		#echo "  |-------> N : $N"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-q)
+		q=`expr $index + 1`
+		eval q=\${$q}
+		#echo "  |-------> q : ${q}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-oe)
+		oe=`expr $index + 1`
+		eval oe=\${$oe}
+		#echo "  |-------> oe : ${oe}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	-a)
+		a=`expr $index + 1`
+		eval a=\${$a}
+		#echo "  |-------> a : ${a}"
+		index=$[$index+1]
+		l_index=$[${l_index}+2]
+		;;
+	esac
+	index=$[$index+1]
+done
+
+# Get command lin
+l_command=""
+l_sep=""
+while [ ${l_index} -le $# ]; do
+	eval arg=\${$l_index}
+	l_command="${l_command}${l_sep}${arg}"
+	l_sep=" "
+	l_index=$[${l_index}+1]
+done
+
+echo "#!/bin/bash" > /tmp/sge_job_$$.sh
+echo " " >> /tmp/sge_job_$$.sh
+echo ". ~/SVN/bash_profile" >> /tmp/sge_job_$$.sh
+echo "echo execution time : \`date\`" >>/tmp/sge_job_$$.sh
+echo "echo running on \${HOSTNAME}" >>/tmp/sge_job_$$.sh
+echo ${l_command} >> /tmp/sge_job_$$.sh
+echo "touch ${oe}/${N}.finished" >> /tmp/sge_job_$$.sh
+chmod +x /tmp/sge_job_$$.sh
+
+if [ -z "${a}" ]
+then
+	qsub -N ${N} -q ${q} -o ${oe} -e ${oe} /tmp/sge_job_$$.sh
+else
+	qsub -N ${N} -q ${q} -o ${oe} -e ${oe} -a ${a} /tmp/sge_job_$$.sh
+fi

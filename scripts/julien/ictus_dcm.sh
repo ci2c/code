@@ -1,0 +1,33 @@
+#!/bin/bash
+
+output=/NAS/dumbo/protocoles/ictus/Data/subjects/
+
+cd $1
+
+echo "$1"
+
+	first_dicom=$(find . -type f -name "*" -print -quit)
+	echo "${first_dicom}"
+	dcmdump -M +P "0008,0020" +P "0010,0010" +P "0010,0040" ${first_dicom} +P "0010,0030" | sed -e 's/.*\[\(.*\)\].*/\1/'
+
+echo "Enter patient folder name : "
+read folder_name
+
+mkdir -p ${output}${folder_name}
+
+
+
+for serie in $(ls -d $1/*)
+			do
+
+echo "checking ${serie}"
+
+					
+					dcm2nii -x n -r n -g n -o ${output}${folder_name} ${serie}/*
+									
+											
+
+done
+
+echo gz compression ...	
+pigz -p 8 -v ${output}${folder_name}/*.nii
