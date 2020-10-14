@@ -1,0 +1,83 @@
+function resClust = FMRI_SurfInterestClasses(resClust,nbleft,templatepath,type,listCOI)
+
+% usage : resClust = FMRI_SurfInterestClasses(resClust,nbleft,templatepath,type,listCOI)
+%
+% Inputs :
+%    sesspath      : path to data
+%    resClust      : structure of clustering results
+%    thresP        : threshold value for pvalue (FDR correction)
+%
+% Option :
+%    listCOI       : list of COI (for manual selection)
+%
+% Output :
+%    resClust      : structure of clustering results
+%    AA            : thresholded maps
+%    numClass      : number of classes
+%
+% Renaud Lopes @ CHRU Lille, Mar 2012
+
+if nargin ~= 4 
+    error('invalid usage');
+end
+    
+thresC = 0.2;
+thresR = 0.75;
+thresU = 0.75;
+
+if(strcmp(type,'auto'))
+
+    tMaps     = resClust.tMaps;
+    represent = resClust.represent;
+    unicity   = resClust.unicity;
+
+    tempList_lh = dir(fullfile(templatepath,'lh.rtemplate*'));
+    tempList_lh = strvcat(tempList_lh.name);
+
+    tempList_rh = dir(fullfile(templatepath,'rh.rtemplate*'));
+    tempList_rh = strvcat(tempList_rh.name);
+
+    nbtemp = size(tempList_lh,1);
+    tMaps_ref = zeros(size(tMaps,1),nbtemp);
+    for k = 1:nbtemp
+        [tmp, fnum]               = read_curv(fullfile(templatepath,tempList_lh(k,:)));
+        tMaps_ref(1:nbleft,k)     = tmp;
+        [tmp, fnum]               = read_curv(fullfile(templatepath,tempList_rh(k,:)));
+        tMaps_ref(nbleft+1:end,k) = tmp;
+    end
+
+    tMaps_ref(isnan(tMaps_ref))=0;
+    C      = (1/(size(tMaps_ref,1)-1))*st_normalise(tMaps_ref)'*st_normalise(tMaps);
+    scoreC = abs(max(C));
+    tmpCOI = find(scoreC > thresC);
+    selCOI = [];
+    for k = 1:length(tmpCOI)
+        if( represent(tmpCOI(k))>=thresR && unicity(tmpCOI(k))>=thresU )
+            selCOI = [selCOI tmpCOI(k)];
+        end
+    end
+
+    resClust.COI        = [];
+    resClust.COI.type   = type;
+    resClust.COI.num    = selCOI;
+    resClust.COI.C      = C;
+    resClust.COI.scoreC = scoreC;
+    resClust.COI.thresC = thresC;
+    resClust.COI.thresR = thresR;
+    resClust.COI.thresU = thresU;
+
+else
+
+    resClust.COI        = [];
+    resClust.COI.type   = type;
+    resClust.COI.num    = listCOI;
+    resClust.COI.C      = [];
+    resClust.COI.scoreC = [];
+    resClust.COI.thresC = thresC;
+    resClust.COI.thresR = thresR;
+    resClust.COI.thresU = thresU;
+
+end
+    
+    
+

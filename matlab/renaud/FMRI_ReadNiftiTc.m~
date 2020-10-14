@@ -1,0 +1,141 @@
+function [courbes_R,decours]=FMRI_ReadNiftiTc(mask_R,fichier,repertoire,norm,opt)
+
+% [courbes_R,decours]=st_read_analyze_tc(mask_R,fichier,repertoire,norm,opt)
+% 
+% ENTREES 
+% mask_R        masque de r�ions d'int�et
+% norm          =1, normalisation des donn�s
+%               =0, donn�s brutes
+% repertoire    (optionnel, defaut: '.') est le repertoire ou lire les donnees
+% fichier       est le masque des fichiers a lire ( ex: 'mon_fichier*.img')
+% opt           (optionnel, defaut 1) indique si l'on veut passer par une interface graphique pour la selection des fichiers (opt = 1)
+%               ou bien si l'on desire recuperer tous les fichiers de la forme fichier (opt = 0).                            
+%
+% SORTIES
+% courbes_R     cell dont l'entree i contient les TCs des voxels de la region i
+% decours       est une matrice dont la colonne i est le TC moyen dans la region i
+%
+% DEPENDANCES
+% spm_get, spm_vol, spm_read_vols
+
+
+% Arguments par defaut
+if nargin < 3
+    norm = 0;
+end
+
+if nargin < 5  
+    opt = 1;
+end
+
+if nargin < 4
+    repertoire = '.';
+end
+
+if nargout > 2
+    mask_f=zeros(size(mask_R));
+    mask_f_v=mask_f(:);
+end
+
+% On selectionne les fichiers
+
+if opt == 0
+    if ~isempty(repertoire)
+        F = files_get('Files',repertoire,fichier);
+    else
+        F = fichier;
+    end
+end                
+if opt == 1
+    F= files_get(Inf,fichier,sprintf('Enter subjet scans'),repertoire);
+end
+
+%%%%%%%%%%%%%%%%%% WITH SPM %%%%%%%%%%%%%%%%%
+if (exist('spm_vol.m')==2) & (exist('spm_sample_vol.m')==2)
+    %h = waitbar(0,'data reading...');
+    % recuperation des infos sur les volumes
+    warning off
+    P = spm_vol(F);
+    warning on
+    nb_of_files = prod(size(P));
+
+    % lecture des coordonnees
+    [nx,ny,nz] = size(mask_R);
+    nb_regions = length(unique(mask_R))-1;
+    for i=1:nb_regions
+        ind=find(mask_R(:)==i);
+        [x{i},y{i},z{i}]=ind2sub([nx,ny,nz],ind);
+        MAP(i).ind = ind;
+        MAP(i).size = [nx,ny,nz];
+        R{i} = find(mask_R==i);
+    end
+    %close(h)
+
+
+    % stockage du decours temporel de chaque point dans T
+    % le meme decours est rearrange dans TT pour faire un plot
+
+    %h = waitbar(0,'data loading...');
+    for j=1:nb_regions
+        courbes_R{j}=zeros(nb_of_files,length(x{j}));
+        for i = 1:nb_of_files
+            warning off
+            T_tmp = spm_sample_vol(P(i),x{j},y{j},z{j},0);
+            warning on
+            courbes_R{j}(i,:)=T_tmp';
+        end        
+        if norm == 1
+            va = var(courbes_R{j});
+            I=find(va==0);
+            if length(I)~=0
+                J=find(va~=0);
+                if nargout > 2
+                    mask_f_v(R{j}(J))=j;
+                end
+                courbes_R{j}=courbes_R{j}(:,J);
+            end
+
+            courbes_R{j}=st_normalise(courbes_R{j});
+        end
+        decours(:,j) = mean(courbes_R{j},2);
+       % waitbar(j/nb_regions,h)
+    end
+
+else
+%%%%%%%%%%%%%%%%%% WITHOUT SPM %%%%%%%%%%%%%%%%%
+    % recuperation des infos sur les volumes
+    nbf = size(F,1);
+
+   % h = waitbar(0,'data loading...');
+
+    for pp=1:nbf
+        [V(pp),data(:,:,:,pp)]=st_read_analyze_emu(F(pp,:));
+   %     waitbar(pp/nbf,h)
+    end
+
+    % lecture des coordonnees
+    [nx,ny,nz,nt] = size(data);
+    nb_regions = length(unique(mask_R))-1;
+    data_v = reshape(data,[nx*ny*nz nt]);
+    mask_v = mask_R(:);
+
+    for j=1:nb_regions
+        courbes_R{j}=(data_v(mask_v==j,:))';
+        if norm == 1
+            va = var(courbes_R{j});
+            I=find(va==0);
+            if length(I)~=0
+                J=find(va~=0);
+                courbes_R{j}=courbes_R{j}(:,J);
+            end
+
+            courbes_R{j}=st_normalise(courbes_R{j});
+        end
+        decours(:,j) = mean(courbes_R{j},2);
+    end
+end
+%close(h)
+
+function courbes2 = st_normalise(courbes)
+courbes2 = courbes-ones([size(courbes,1) 1])*mean(courbes,1);
+courbes2 = courbes2./(ones([size(courbes,1) 1])*sqrt((1/(size(courbes2,1)-1))*sum(courbes2.^2,1)));

@@ -1,0 +1,62 @@
+function [Rand_walk, Rand_nodes, M_select] = graph_random_walk(G, Min_selection, Kapa)
+% Usage: [Rand_walk, Rand_nodes, M_select] = graph_random_walk(G, MIN_SELECTION, KAPA)
+%
+% Inputs:
+%     G                : Input graph structure 
+%     MIN_SELECTION    : Minimal edge selection (usually > 5)
+%     KAPA             : Smoothness parameter (usually 1)
+%
+% Output:
+%     Rand_walk        : 1D sequence of the measurements along the walk
+%     Rand_nodes       : Sequence of the nodes the walk went though
+%     M_select         : Number of times each node was selected
+%
+% See also: initGraphRW, loadGraphRW, plotGraph3d
+%
+% Pierre Besson, Nov. 2009
+
+if nargin ~= 3
+    error('Invalid usage');
+end
+
+% Preallocating
+Rand_walk = zeros(2^19, 1);
+Rand_nodes = zeros(2^19, 1);
+V = size(G.g);
+V = V(1);
+POW2 = 2.^(1:40);
+
+% Initialization
+W = G.W;
+M_select = zeros(V, 1);
+V0 = randint(1,1,[1 V]);
+V00 = V0;
+
+% Loop
+i=1;
+while 1
+    L = G.g(V0);
+    try
+        % Prob = 2.^-(M_select(L) - max(M_select(L)) + Kapa .* (W(V0) - W(L)).^2);
+        Prob = exp(-Kapa .* (M_select(L) - max(M_select(L)));
+        N = randsample(L, 1, true, Prob);
+    catch
+        V00 = V0;
+        V0 = L;
+        continue;
+    end
+    % if (N ~= V00)
+    if 
+        Rand_walk(i) = W(N);
+        Rand_nodes(i) = N;
+        M_select(N) = M_select(N) + 1;
+        if ((sum(POW2 == i)) && (min(M_select) >= Min_selection))
+            break;
+        end
+        i = i+1;
+        V00 = V0;
+        V0 = N;
+    end
+end
+Rand_walk = Rand_walk(1:i);
+Rand_nodes = Rand_nodes(1:i);

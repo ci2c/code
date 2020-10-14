@@ -1,0 +1,212 @@
+#include "mex.h"
+#include <math.h>
+#include <malloc.h>
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
+
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+int nx, ny, x, y, i, Length, L_V, j, k, l, Max_M, Min_M, Temp, V1, V0, V00, R, *Choice, *V;
+double *V_Seq, *Out1, *Out2, *Prob_Choice, L_Choice;
+double *Rand_w, *Image, *Min, *M_select, *ptr, *Kapa;
+void *newptr;
+
+if (nrhs != 3)
+mexErrMsgTxt("Must have two inputs");
+if (nlhs != 3)
+mexErrMsgTxt("Must have three outputs");
+
+nx = mxGetM(prhs[0]);
+ny = mxGetN(prhs[0]);
+srand(time(NULL));
+x = rand() % nx;
+y = rand() % ny;
+
+Image = mxGetPr(prhs[0]);
+Min = mxGetPr(prhs[1]);
+Kapa = mxGetPr(prhs[2]);
+
+plhs[2] = mxCreateDoubleMatrix(nx*ny, 1, mxREAL);
+M_select = mxGetPr(plhs[2]);
+
+Length = 4;
+i = 0;
+V0 = nx*y + x;
+V00 = -1;
+
+Rand_w = (double *)mxRealloc(NULL, Length*sizeof(double));
+V_Seq = (double *)mxRealloc(NULL, Length*sizeof(double));
+
+V = NULL;
+Prob_Choice = NULL;
+Choice = NULL;
+Min_M = 0;
+
+while (1)
+{
+	if (i >= Length) {
+		Min_M = Min[0];
+		for (j=0;j<nx*ny;j++) {
+			if (M_select[j] < Min_M)
+				Min_M = M_select[j];
+		}
+		if (Min_M >= Min[0])
+			break;
+		
+		Length *= 2;
+		/*mexPrintf("Length = %d\n",Length);*/
+		Rand_w = (double *)mxRealloc(Rand_w, Length*sizeof(double));
+		V_Seq = (double *)mxRealloc(V_Seq, Length*sizeof(double));
+		if (V_Seq == NULL) {
+			mexErrMsgTxt("Bad Realloc for V_Seq\n");
+		}
+		if (Rand_w == NULL) {
+			mexErrMsgTxt("Bad Realloc for Rand_w\n");
+		}
+	}
+	
+	if ((x > 0) && (y > 0) && (x < nx-1) && (y < ny -1))
+	{
+		V = (int *)mxRealloc(V, 8*sizeof(int));
+		V[0] = nx*(y-1) + x - 1;
+		V[1] = nx*(y-1) + x;
+		V[2] = nx*(y-1) + x + 1;
+		V[3] = nx*y + x - 1;
+		V[4] = nx*y + x + 1;
+		V[5] = nx*(y+1) + x - 1;
+		V[6] = nx*(y+1) + x;
+		V[7] = nx*(y+1) + x + 1;
+		L_V = 8;
+	}
+	else {
+	if (x * y == 0) {
+		if ((x == 0) && (y == 0)) {
+			V = (int *)mxRealloc(V, 3*sizeof(int));
+			V[0] = nx;
+			V[1] = 1;
+			V[2] = nx + 1;
+			L_V = 3;
+		}
+
+		if ((x == 0) && (y == ny-1)) {
+			V = (int *)mxRealloc(V, 3*sizeof(int));
+			V[0] = nx*(y-1);
+			V[1] = nx*y + 1;
+			V[2] = nx*(y-1) + 1;
+			L_V = 3;
+		}
+		
+		if ((x == 0) && (y > 0) && (y < ny - 1)) {
+			V = (int *)mxRealloc(V, 5*sizeof(int));
+			V[0] = nx*(y-1);
+			V[1] = nx*(y+1);
+			V[2] = nx*y + 1;
+			V[3] = nx*(y-1)+1;
+			V[4] = nx*(y+1)+1;
+			L_V = 5;
+		}
+		
+		if ((y == 0) && (x == nx - 1)) {
+			V = (int *)mxRealloc(V, 3*sizeof(int));
+			V[0] = x - 1;
+			V[1] = nx + x;
+			V[2] = nx + x-1;
+			L_V = 3;
+		}
+		
+		if ((y == 0) && (x > 0) && (x < nx-1)) {
+			V = (int *)mxRealloc(V, 5*sizeof(int));
+			V[0] = x - 1;
+			V[1] = x + 1;
+			V[2] = nx + x - 1;
+			V[3] = nx + x;
+			V[4] = nx + x + 1;
+			L_V = 5;
+		}
+	}
+	else {
+		if ((x == nx - 1) && (y == ny - 1)) {
+			V = (int *)mxRealloc(V, 3*sizeof(int));
+			V[0] = nx*y + x - 1;
+			V[1] = nx*(y-1) + x;
+			V[2] = nx*(y-1) + x-1;
+			L_V = 3;
+		}
+		else {
+			if (x == nx - 1) {
+				V = (int *)mxRealloc(V, 5*sizeof(int));
+				V[0] = nx * y + x - 1;
+				V[1] = nx * (y-1) + x-1;
+				V[2] = nx * (y-1) + x;
+				V[3] = nx * (y+1) + x;
+				V[4] = nx * (y+1) + x-1;
+				L_V = 5;
+			}
+			if (y == ny - 1) {
+				V = (int *)mxRealloc(V, 5*sizeof(int));
+				V[0] = nx * y + x - 1;
+				V[1] = nx * y + x + 1;
+				V[2] = nx * (y-1) + x - 1;
+				V[3] = nx * (y-1) + x;
+				V[4] = nx * (y-1) + x+1;
+				L_V = 5;
+			}
+		}
+	}
+	}
+	
+	Max_M = -1;
+	for (j=0;j<L_V;j++) {
+		if (M_select[V[j]] > Max_M)
+			Max_M = M_select[V[j]];
+	}
+
+	Prob_Choice = (double *)mxRealloc(Prob_Choice, L_V*sizeof(double));
+	L_Choice = 0.0;
+	for (j=0;j<L_V;j++) { 
+        /*L_Choice += exp(- (4.0 * (M_select[V[j]] - Max_M) + Kapa[0] * (Image[V0] - Image[V[j]]) * (Image[V0] - Image[V[j]])));
+        L_Choice += exp(- (4.0 * (M_select[V[j]] - Max_M) + Kapa[0] * pow((Image[V0] - Image[V[j]]) * (Image[V0] - Image[V[j]]), 0.25)));
+        L_Choice += 1.0 / ();*/
+        L_Choice += exp( -Kapa[0] * (M_select[V[j]] - Max_M) );
+        Prob_Choice[j] = L_Choice;
+	}
+	
+
+    R = L_Choice * (double)rand() / ((double)RAND_MAX + 1.0);
+    k=0;
+    for (j=0;j<L_V;j++) {
+		if (Prob_Choice[j] > R) break;
+        k++;
+	}
+    V1 = V[k];
+    
+    
+	
+	if (V1 != V00) {
+		V_Seq[i] = V1;
+		Rand_w[i] = Image[V1];
+		M_select[V1]++;
+		V00=V0;
+		V0=V1;
+		y = floor(V1 / nx);
+		x = V1 - nx * y;
+		i++;
+	}
+}
+
+plhs[0] = mxCreateDoubleMatrix(Length, 1, mxREAL);
+plhs[1] = mxCreateDoubleMatrix(Length, 1, mxREAL);
+Out1 = mxGetPr(plhs[0]);
+Out2 = mxGetPr(plhs[1]);
+for (j=0;j<Length;j++) {
+	Out1[j] = Rand_w[j];
+	Out2[j] = V_Seq[j];
+}
+mxFree(Rand_w);
+mxFree(V_Seq);
+mxFree(V);
+
+}

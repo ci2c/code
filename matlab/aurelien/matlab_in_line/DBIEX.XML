@@ -1,0 +1,1026 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PRIDE_V5>
+    
+   <Series_Info>
+        
+      <Attribute Level="Patient" Name="Patient Name" Tag="0x00100010" Type="String">pride research test</Attribute>
+        
+      <Attribute Level="Examination" Name="Examination Name" Tag="0x00400254" Type="String">-</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Protocol Name" Tag="0x00181030" Type="String">WIP Survey</Attribute>
+        
+      <Attribute Level="Examination" Name="Examination Date" Tag="0x00400244" Type="Date">2009.03.23</Attribute>
+        
+      <Attribute Level="Examination" Name="Examination Time" Tag="0x00400245" Type="Time">22:10:12</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Series Data Type" Tag="0x20051035" Type="String">PIXEL</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Aquisition Number" Tag="0x2001107B" Type="Int32">7</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Reconstruction Number" Tag="0x2001101D" Type="Int32">2</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Scan Duration" Tag="0x2001101D" Type="Int32">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Max No Phases" Tag="0x20011017" Type="Int32">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Max No Echoes" Tag="0x20011014" Type="Int32">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Max No Slices" Tag="0x20011018" Type="Int32">9</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Max No Dynamics" Tag="0x20011081" Type="Int32">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Max No Mixes" Tag="0x20051021" Type="Int16">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Max No B Values" Tag="0x20051414" Type="Int32">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Max No Gradient Orients" Tag="0x20051415" Type="Int32">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="No Label Types" Tag="0x20051428" Type="Int32">0</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Patient Position" Tag="0x00185100" Type="String">HFS</Attribute>
+        
+      <Attribute Level="MRStack" Name="Preparation Direction" Tag="0x2005107B" Type="String">AP</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Technique" Tag="0x20011020" Type="String">T1TFE</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Scan Resolution X" Tag="0x2005101D" Type="Int16">256</Attribute>
+        
+      <Attribute Level="MRImage" Name="Scan Resolution Y" Tag="0x00180089" Type="Int32">128</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Scan Mode" Tag="0x2005106F" Type="String">MS</Attribute>
+        
+      <Attribute ArraySize="2" Level="MRSeries" Name="Repetition Times" Tag="0x20051030" Type="Float">1.1000E+001</Attribute>
+        
+      <Attribute Level="MRStack" Name="FOV AP" Tag="0x20051074" Type="Float">2.5000E+002</Attribute>
+        
+      <Attribute Level="MRStack" Name="FOV FH" Tag="0x20051075" Type="Float">2.5000E+002</Attribute>
+        
+      <Attribute Level="MRStack" Name="FOV RL" Tag="0x20051076" Type="Float">5.0000E+001</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Water Fat Shift" Tag="0x20011022" Type="Float">3.1016E+000</Attribute>
+        
+      <Attribute Level="MRStack" Name="Angulation AP" Tag="0x20051071" Type="Float">0.0000E+000</Attribute>
+        
+      <Attribute Level="MRStack" Name="Angulation FH" Tag="0x20051072" Type="Float">0.0000E+000</Attribute>
+        
+      <Attribute Level="MRStack" Name="Angulation RL" Tag="0x20051073" Type="Float">0.0000E+000</Attribute>
+        
+      <Attribute Level="MRStack" Name="Off Center AP" Tag="0x20051078" Type="Float">-2.0000E+001</Attribute>
+        
+      <Attribute Level="MRStack" Name="Off Center FH" Tag="0x20051079" Type="Float">0.0000E+000</Attribute>
+        
+      <Attribute Level="MRStack" Name="Off Center RL" Tag="0x2005107A" Type="Float">0.0000E+000</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Flow Compensation" Tag="0x20051016" Type="Boolean">N</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Presaturation" Tag="0x2005102F" Type="Boolean">N</Attribute>
+        
+      <Attribute ArraySize="3" Level="MRSeries" Name="Phase Encoding Velocity" Tag="0x2001101A" Type="Float">0.0000E+000 0.0000E+000 0.0000E+000</Attribute>
+        
+      <Attribute Level="MRSeries" Name="MTC" Tag="0x2005101C" Type="Boolean">N</Attribute>
+        
+      <Attribute Level="MRSeries" Name="SPIR" Tag="0x20011021" Type="Boolean">N</Attribute>
+        
+      <Attribute Level="MRSeries" Name="EPI factor" Tag="0x20011013" Type="Int32">1</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Dynamic Scan" Tag="0x20011012" Type="Boolean">N</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Diffusion" Tag="0x20051014" Type="Boolean">N</Attribute>
+        
+      <Attribute Level="MRSeries" Name="Diffusion Echo Time" Tag="0x20011011" Type="Float">0.0000E+000</Attribute>
+    
+   </Series_Info>
+    
+   <Image_Array>
+        
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">0</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+    
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">2</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">1</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">3</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">2</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">4</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">3</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">5</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">4</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">6</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">5</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">7</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">6</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">8</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">7</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+      <Image_Info>
+            
+         <Key>
+                
+            <Attribute Name="Slice" Tag="0x2001100A" Type="Int32">9</Attribute>
+                
+            <Attribute Name="Echo" Tag="0x00180086" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Dynamic" Tag="0x00200100" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Phase" Tag="0x20011008" Type="Int32">1</Attribute>
+                
+            <Attribute Name="BValue" Tag="0x20051412" Type="Int32">1</Attribute>
+                
+            <Attribute Name="Grad Orient" Tag="0x20051413" Type="Int32">1</Attribute>
+                
+            <Attribute EnumType="Label_Type" Name="Label Type" Tag="0x20051429" Type="Enumeration">-</Attribute>
+                
+            <Attribute EnumType="Image_Type" Name="Type" Tag="0x20051011" Type="Enumeration">M</Attribute>
+                
+            <Attribute EnumType="Image_Sequence" Name="Sequence" Tag="0x2005106E" Type="Enumeration">FFE</Attribute>
+                
+            <Attribute Calc="Index" Name="Index" Type="Int32">8</Attribute>
+            
+         </Key>
+            
+         <Attribute Name="Pixel Size" Tag="0x00280100" Type="UInt16">16</Attribute>
+            
+         <Attribute Name="Scan Percentage" Tag="0x00180093" Type="Double">5.00000000E+001</Attribute>
+            
+         <Attribute Name="Resolution X" Tag="0x00280011" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Resolution Y" Tag="0x00280010" Type="UInt16">256</Attribute>
+            
+         <Attribute Name="Rescale Intercept" Tag="0x00281052" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Rescale Slope" Tag="0x00281053" Type="Double">1.22930400E+000</Attribute>
+            
+         <Attribute Name="Scale Slope" Tag="0x2005100E" Type="Float">5.6476E-003</Attribute>
+            
+         <Attribute Name="Window Center" Tag="0x00281050" Type="Double">1.39700000E+003</Attribute>
+            
+         <Attribute Name="Window Width" Tag="0x00281051" Type="Double">2.42900000E+003</Attribute>
+            
+         <Attribute Name="Slice Thickness" Tag="0x00180050" Type="Double">1.00000000E+001</Attribute>
+            
+         <Attribute Name="Slice Gap" Tag="0x00180088" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute EnumType="Display_Orientation" Name="Display Orientation" Tag="0x20051004" Type="Enumeration">NONE</Attribute>
+            
+         <Attribute Name="fMRI Status Indication" Tag="0x20051063" Type="Int16">0</Attribute>
+            
+         <Attribute EnumType="Type_ed_es" Name="Image Type Ed Es" Tag="0x20011007" Type="Enumeration">U</Attribute>
+            
+         <Attribute ArraySize="2" Name="Pixel Spacing" Tag="0x00280030" Type="Double">9.76562500E-001 9.76562500E-001</Attribute>
+            
+         <Attribute Name="Echo Time" Tag="0x00180081" Type="Double">4.60150000E+000</Attribute>
+            
+         <Attribute Name="Dyn Scan Begin Time" Tag="0x200510A0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Trigger Time" Tag="0x00181060" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Diffusion B Factor" Tag="0x20011003" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="No Averages" Tag="0x00180083" Type="Double">1.00000000E+000</Attribute>
+            
+         <Attribute Name="Image Flip Angle" Tag="0x00181314" Type="Double">1.50000000E+001</Attribute>
+            
+         <Attribute Name="Cardiac Frequency" Tag="0x00181088" Type="Int32">0</Attribute> 
+            
+         <Attribute Name="Min RR Interval" Tag="0x00181081" Type="Int32">0</Attribute>
+            
+         <Attribute Name="Max RR Interval" Tag="0x00181082" Type="Int32">0</Attribute>
+            
+         <Attribute Name="TURBO Factor" Tag="0x00180091" Type="Int32">64</Attribute>
+            
+         <Attribute Name="Inversion Delay" Tag="0x00180082" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Name="Contrast Type" Tag="0x00089209" Type="String">T1</Attribute>
+            
+         <Attribute Name="Diffusion Anisotropy Type" Tag="0x00189147" Type="String">-</Attribute>
+            
+         <Attribute Name="Diffusion AP" Tag="0x200510B1" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion FH" Tag="0x200510B2" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Name="Diffusion RL" Tag="0x200510B0" Type="Float">0.0000E+000</Attribute>
+            
+         <Attribute Calc="AngulationAP" Name="Angulation AP" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationFH" Name="Angulation FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="AngulationRL" Name="Angulation RL" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterAP" Name="Offcenter AP" Type="Double">-2.00000000E+001</Attribute>
+            
+         <Attribute Calc="OffcenterFH" Name="Offcenter FH" Type="Double">0.00000000E+000</Attribute>
+            
+         <Attribute Calc="OffcenterRL" Name="Offcenter RL" Type="Double">2.00000000E+001</Attribute>
+            
+         <Attribute Calc="SliceOrient" EnumType="Slice_Orientation" Name="Slice Orientation" Type="Enumeration">Sagittal</Attribute>
+        
+      </Image_Info>
+   </Image_Array>
+
+</PRIDE_V5>

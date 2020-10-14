@@ -1,0 +1,73 @@
+function CoregROIOnEPI(data_path)
+
+%% Initialise SPM defaults
+%--------------------------------------------------------------------------
+spm('Defaults','fMRI');
+
+%spm_jobman('initcfg'); % SPM8 only
+
+%% WORKING DIRECTORY
+%--------------------------------------------------------------------------
+cd(data_path);
+
+%% Select structural scan
+%--------------------------------------------------------------------------
+trg = spm_select('FPList', data_path, '.nii');
+mov = 
+
+%% New segment
+
+matlabbatch{1}.spm.spatial.coreg.estwrite.ref = {'/home/fatmike/renaud/tep_fog/freesurfer/g1/ALIB/fmri/spm/aepi_001.img,1'};
+matlabbatch{1}.spm.spatial.coreg.estwrite.source = {'/home/fatmike/renaud/tep_fog/freesurfer/g1/ALIB/fmri/spm/aepi_001.img,1'};
+matlabbatch{1}.spm.spatial.coreg.estwrite.other = {'/home/fatmike/renaud/tep_fog/aal.nii,1'};
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.sep = [4 2];
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.fwhm = [7 7];
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.interp = 6;
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.wrap = [0 0 0];
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.mask = 0;
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r';
+
+matlabbatch{1}.spm.tools.vbm8.estwrite.data          = cellstr(a(1,:));
+matlabbatch{1}.spm.tools.vbm8.estwrite.opts.tpm      = {'/home/global/matlab_toolbox/spm8/toolbox/Seg/TPM.nii'};
+matlabbatch{1}.spm.tools.vbm8.estwrite.opts.ngaus    = [2 2 2 3 4 2];
+matlabbatch{1}.spm.tools.vbm8.estwrite.opts.biasreg  = 0.0001;
+matlabbatch{1}.spm.tools.vbm8.estwrite.opts.biasfwhm = 60;
+matlabbatch{1}.spm.tools.vbm8.estwrite.opts.affreg   = 'mni';
+matlabbatch{1}.spm.tools.vbm8.estwrite.opts.warpreg  = 4;
+matlabbatch{1}.spm.tools.vbm8.estwrite.opts.samp     = 3;
+matlabbatch{1}.spm.tools.vbm8.estwrite.extopts.dartelwarp.normhigh.darteltpm = {'/home/global/matlab_toolbox/spm8/toolbox/vbm8/Template_1_IXI550_MNI152.nii'};
+matlabbatch{1}.spm.tools.vbm8.estwrite.extopts.sanlm        = 2;
+matlabbatch{1}.spm.tools.vbm8.estwrite.extopts.mrf          = 0.15;
+matlabbatch{1}.spm.tools.vbm8.estwrite.extopts.cleanup      = 1;
+matlabbatch{1}.spm.tools.vbm8.estwrite.extopts.print        = 1;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.GM.native     = 1;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.GM.warped     = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.GM.modulated  = 2;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.GM.dartel     = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.WM.native     = 1;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.WM.warped     = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.WM.modulated  = 2;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.WM.dartel     = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.CSF.native    = 1;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.CSF.warped    = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.CSF.modulated = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.CSF.dartel    = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.bias.native   = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.bias.warped   = 1;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.bias.affine   = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.label.native  = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.label.warped  = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.label.dartel  = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.jacobian.warped = 0;
+matlabbatch{1}.spm.tools.vbm8.estwrite.output.warps         = [0 0];
+
+[pathstr,name,ext] = fileparts(a);
+b = ['p' name '_seg8.txt'];
+matlabbatch{2}.spm.tools.vbm8.tools.calcvol.data         = cellstr(b);
+matlabbatch{2}.spm.tools.vbm8.tools.calcvol.calcvol_name = 'raw_volumes.txt';
+
+%% RUN
+save(fullfile(data_path,'vbm8_processing.mat'),'matlabbatch');
+spm_jobman('run',matlabbatch);

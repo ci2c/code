@@ -1,0 +1,17 @@
+libstdc++.so.6: version `GLIBCXX_3.4.9' not found
+
+Solution :
+
+1 )
+
+mv [...]/matlab/sys/os/glnx86/libgcc_s.so.1 [...]/matlab/sys/os/glnx86/libgcc_s.so.1.orig
+mv [...]/matlab/sys/os/glnx86/libiberty.so [...]/matlab/sys/os/glnx86/libiberty.so.orig
+mv [...]/matlab/sys/os/glnx86/libstdc++.so.6.0.8 [...]/matlab/sys/os/glnx86/libstdc++.so.6.0.8.orig
+mv [...]/matlab/sys/os/glnx86/libstdc++.so.6 [...]/matlab/sys/os/glnx86/libstdc++.so.6.orig
+mv [...]/matlab/sys/os/glnx86/libtermcap.so [...]/matlab/sys/os/glnx86/libtermcap.so.orig
+
+2 )
+
+In [...]/matlab/bin
+
+Add LD_LIBRARY_PATH=/lib:/usr/lib at the end of the file .matlab7rc.sh

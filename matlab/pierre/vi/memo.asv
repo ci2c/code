@@ -1,0 +1,19 @@
+
+
+%A small example of how to run vi matlab function
+
+%1)create 2 random networks
+nodes=30;
+graph1=rand(30,30);
+
+for i=1:nodes
+    graph1(i,i)=0;
+end
+
+graph2=rand(30,30);
+
+for i=1:nodes
+    graph2(i,i)=0;
+end
+
+%2)run modularity_dir()

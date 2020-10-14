@@ -1,0 +1,118 @@
+function [liste_runs, entete] = DTIStatistics_log2matlab(filename)
+
+if exist(filename, 'file') ~= 2 % Si le fichier n'est pas trouve
+    error(strcat('DTIStatistics_log2matlab : fichier (', filename, ') non trouve'));
+    liste_runs = {};
+    entete = struct;
+    return
+end
+
+%% Définition de variables
+field       = ReadLogFile(filename);
+nb_lignes   = length(field);
+nb_patients = 0;
+li          = 1;
+
+%% On compte le nombre de runs
+nom_runs = {};
+for i=1:nb_lignes
+    if (strcmp(field{i}{1},'patient'))
+        nb_patients = nb_patients + 1;
+        nom_runs = [nom_runs; field{i}{2}];
+    end
+end
+
+liste_runs = cell(1, nb_patients);
+
+%% Extraction des donnees generales (entete)
+[path, sfn] = fileparts(filename);
+entete = struct('nom', sfn, ...
+                'nb_patients', nb_patients ...
+                );
+xls_filename = fullfile(path,[sfn '.xls']);
+
+% Ecriture de la feuille entete
+xlswrite(xls_filename, {'nom'; 'nb_patients'}, 'feuil1');
+xlswrite(xls_filename, {entete.nom; entete.nb_patients}, 'feuil1', 'B1');
+
+xlswrite(xls_filename, nom_runs, 'feuil1', 'A6');
+
+%% Boucle d'extraction des donnees par patients
+for r=1:nb_patients
+    
+    % On se place au debut du run dans le log :
+    while ~(strcmp(field{li}{1},'patient'))
+        li = li + 1;
+    end
+    
+    li = li + 1;
+    b_c = 1;
+    
+    run_courant = struct;
+    run_courant.num = r; 
+    run_courant.FA = [];
+    run_courant.L1 = [];
+    run_courant.L2 = [];
+    run_courant.L3 = [];
+    run_courant.MD = [];
+    run_courant.MO = [];
+    run_courant.S0 = [];
+    run_courant.T2 = [];
+    run_courant.V1 = [];
+    run_courant.V2 = [];
+    run_courant.V3 = [];
+    
+%% Extraction des donnees du run courant
+    while 1
+        
+        switch field{li}{2}
+            case 'FA'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.FA = cat(1,run_courant.FA,tmp);
+            case 'L1'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.L1 = cat(1,run_courant.L1,tmp);
+            case 'L2'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.L2 = cat(1,run_courant.L2,tmp);
+            case 'L3'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.L3 = cat(1,run_courant.L3,tmp);
+            case 'MD'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.MD = cat(1,run_courant.MD,tmp);
+            case 'MO'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.MO = cat(1,run_courant.MO,tmp);
+            case 'S0'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.S0 = cat(1,run_courant.S0,tmp);
+            case 'T2'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.T2 = cat(1,run_courant.T2,tmp);
+            case 'V1'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.V1 = cat(1,run_courant.V1,tmp);
+            case 'V2'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.V2 = cat(1,run_courant.V2,tmp);
+            case 'V3'
+                tmp = [str2double(field{li+1}{2}) str2double(field{li+1}{4}) str2double(field{li+1}{6}) str2double(field{li+1}{8})];
+                run_courant.V3 = cat(1,run_courant.V3,tmp);
+        end
+       
+        li = li + 1; % On passe a la ligne suivante
+    end
+    
+    
+%% Sauvegarde de run_courant dans liste_runs
+    liste_runs{r} = run_courant;
+    
+    nf_run = strcat('run', num2str(run_courant.num));
+    
+    % Ecriture de la feuille runI
+    xlswrite(xls_filename, {'RUN', sRUN.num, sRUN.nom}, nf_run);
+    xlswrite(xls_filename, {'indice', 'image', 't_img', 'duree_img', 'rep_att', 'reponse', 'correct', 't_rep'}, nf_run, 'A3');
+    
+end
+ 

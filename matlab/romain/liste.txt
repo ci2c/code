@@ -1,0 +1,24 @@
+
+anova_rm				performs a repeated measures ANOVA for comparing the means of two or more columns (time)
+edgelist				retourne les aretes
+FMRI_NetworkAnalysis			SCript de clement pour calcul de l'efficience
+fonctionnel.m				????
+getVolumeConnectMatrix_VoxelLevel.m	Connectome Structurel Voxel
+getVoxelConnectivityMatrix.m		lance en boucle le getVolumeConnectMatrix_VoxelLevel.m
+
+ICC.m 					Intraclass correlation
+
+Incidence2Connectivity.m		renvoie un matrice de connectivité à partir d'une matrice d'incidence
+
+Matrix2GraphML.m			transforme un matrice d'adajacence (càd connectivité) en fichier de type graphml
+adj2pajek2				Converts an adjacency matrix representation to a Pajek .net read format
+
+vertex2faces.m				Afin d'avoir des matrice strcuturelles et fonctionelles de même dimension (on moyenne les 3 vertex pour faire une valeur de triangle)
+xjview.m				A viewing program for SPM Xu Cui
+
+rep/rayTriGPU				test des intersections en gpu
+rep/gaimc				Graph Algorithms In Matlab Code David Gleich
+rep/matlab_bgl				MatlabBGL provides robust and efficient graph algorithms for Matlab using native data structures.
+rep/graphViz4MAtlab			Display a directed or undirected graph in a Matlab figure window.  Matt Dunham
+
+

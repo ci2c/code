@@ -1,0 +1,14 @@
+function FMRI_SelectCOIForNedica(nedfolder,TempDir,opt_choice)
+
+if nargin < 2
+    opt_choice = 'auto';
+end
+if nargin < 3
+    TempDir = '/home/renaud/SVN/matlab/renaud/noi_templates';
+end
+
+load(fullfile(nedfolder,'resClust.mat'),'resClust');
+
+resClust = FMRI_SelectInterestClasses(fullfile(outfolder,'nedica'),TempDir,resClust,opt_choice);
+
+save(fullfile(outfolder,'nedica','resClust.mat'),'resClust');

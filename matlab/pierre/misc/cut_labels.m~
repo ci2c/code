@@ -1,0 +1,54 @@
+function cut_labels(Path, Prefix, Annot, Thresh, Prefix_out)
+% usage : cut_labels(PATH, PREFIX, ANNOT, Thesh, PREFIX_OUTPUT)
+%
+% INPUT :
+% -------
+%    PATH    : Path to the labels
+%
+%    PREFIX  : Prefix of the labels (i.e. 'Label' if they are called
+%    'Label_###.nii.gz'
+%
+%    ANNOT   : Path to annotation file
+%
+%    Thresh  : Threshold (usually 0.4)
+%
+%    PREFIX_OUTPUT   : Prefix of output labels
+%
+% Pierre Besson, August 2009
+
+if nargin ~= 5
+    error('Invalid usage');
+end
+
+global MAXMEM; MAXMEM=512;
+
+% Load first image to set parameters
+fprintf('LOADING %s\n', strcat(Path, '/', Prefix, '_', '1', '.nii.gz'));
+Im0 = load_nifti(strcat(Path, '/', Prefix, '_', '1', '.nii.gz'));
+nb_el = numel(Im0.vol);
+[v, label, colortable] = read_annotation(Annot);
+nROI = length(unique(label));
+
+% Allocate memory
+disp('Allocating memory...');
+Maximum = (reshape(Im0.vol, 1, nb_el) ./ max(Im0.vol(:)));
+IDs = zeros(size(Maximum));
+IDs(find(Maximum > Thresh)) = 1;
+
+% Filling the table
+for i = 2 : nROI
+    Im = load_nifti(strcat(Path, '/', Prefix, '_', int2str(i), '.nii.gz'));
+    TEMP = reshape(Im.vol, 1, nb_el);
+    TEMP = TEMP ./ max(TEMP(:));
+    IDs(find((Maximum < TEMP) & (TEMP > Thresh))) = i;
+end
+
+IDs = reshape(IDs, size(Im0.vol, 1), size(Im0.vol, 2), size(Im0.vol, 3));
+Im0.vol = IDs;
+save_nifti(Im0, strcat(Path, '/', Prefix_out, '_all.nii.gz'));
+
+for i = 1 : nROI
+    Im0.vol = (IDs == i);
+    save_nifti(Im0, strcat(Path, '/', Prefix_out, '_', int2str(i), '.nii.gz'));
+end
+

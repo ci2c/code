@@ -1,0 +1,97 @@
+function P = FMRI_Hier2Partition(hier,par,opt)
+
+% P = ned_hier2P(hier,par,opt)
+%
+% ENTREES
+% hierarchie  est une matrice decrivant une hierarchie (voir dendogram).
+% par           est soit un seuil pour seuiller la hierarchie (opt = 0), soit le nombre de classes que l'on desire avoir (opt = 1), 
+%               soit la taille minimiale d'un element de la partition.
+% opt           (optionnel, defaut 1) vaut 0,1 ou 2. 0:  seuil, 1: nb d'elements de la partition, 2: taille minimiale d'un element de la partition.
+%
+% SORTIES
+% P             est matrice dont chaque ligne est un masque logique decrivant un element de la partition sur les liens.
+%
+% COMMENTAIRES
+% Pierre Bellec 03/09/03. Modifie : 12/09/03, 10/04.
+
+% usage : hier = FMRI_HierarchicalClustering(X,[type,p])
+%
+% Inputs :
+%    hier        : 2D array defining a hierarchy
+%    par         : 1- threshold value for thresholding the hierarchy (est soit un seuil pour seuiller la hierarchie (opt = 0), soit le nombre de classes que l'on desire avoir (opt = 1), 
+%               soit la taille minimiale d'un element de la partition.
+%
+% Options :
+%    type        : similarity measure ('norm2','corr','abscorr'). Default:
+%                  'norm2'
+%    p           : weightening for each individual. Default: 1/N
+%
+% Output :
+%    hier        : 2D array defining a hierarchy
+%
+% Renaud Lopes @ CHRU Lille, Mar 2012
+
+
+N = hier(1,4)-1;
+nb_partitions = hier(end,4)-N;
+objets = 1:N;
+P = eye(N)>0;
+taille = ones([size(P,1),1]);
+niveau = zeros([size(P,1),1]);
+
+
+% Parametres par defaut
+if nargin < 2
+    opt = 0;
+end
+if nargin < 4
+    visu = 0 ;
+end
+if nargin == 6
+    nb_vox = 2;
+end
+
+if opt == 0
+    while ((~isempty(hier))&(hier(1,1)<par))
+        x = find(objets == hier(1,2));
+        y = find(objets == hier(1,3));
+        P(:,x) = P(:,x) | P(:,y);
+        objets(x) = max(objets)+1;
+        objets = objets(1:size(P,2) ~= y);
+        P = P(:,1:size(P,2) ~= y)>0;
+        hier = hier(2:size(hier,1),:);
+    end
+end    
+
+if opt == 1
+    while ((~isempty(hier))&(size(P,2)>par))
+        x = find(objets == hier(1,2));
+        y = find(objets == hier(1,3));
+        P(:,x) = P(:,x) | P(:,y);
+        objets(x) = max(objets)+1;
+        objets = objets(1:size(P,2) ~= y);
+        P = P(:,1:size(P,2) ~= y)>0;
+        hier = hier(2:size(hier,1),:);
+    end
+end    
+
+if opt == 2
+    while ((~isempty(hier))&(max(taille)<par))
+        x = find(objets == hier(1,2));
+        y = find(objets == hier(1,3));
+        P(:,x) = P(:,x) | P(:,y);
+        objets(x) = max(objets)+1;
+        objets = objets(1:size(P,2) ~= y);
+        taille(x) = taille(x)+taille(y);
+        taille = taille(1:size(P,2) ~= y);        
+        P = P(:,1:size(P,2) ~= y)>0;
+        hier = hier(2:size(hier,1),:);
+    end    
+end    
+
+tmp = zeros([size(P,1),1]);
+
+for i = 1:size(P,2)
+    tmp(P(:,i)>0) = i;
+end
+P = tmp;

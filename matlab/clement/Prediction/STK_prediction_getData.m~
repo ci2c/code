@@ -1,0 +1,211 @@
+function STK_prediction_getData
+
+% Prepare datat to give as input to ridge prediction 
+%
+%
+% X_ : final output of PCA from data. All subjects are present,
+% rows of 0 correspond to subjects not selected for PCA (subjects
+% abnormalities). 
+%
+% S : Rows ID in X corresponding to subjects to be kept in
+% further analysis
+%
+% fcoeff : matrix of tranSormation coefficients of data.
+%
+% Y : matrix of score to be predicted by X
+
+%% CONFIG
+fsdir  = '/NAS/tupac/protocoles/Strokdem/FS5.1_T2mask';
+lesdir = '/NAS/tupac/protocoles/Strokdem/Lesions/72H/';
+
+PCA = 1; % 1 for using all connections and PCA, 0 for using connections of PSCI network without PCA
+MMSE = 0;
+
+subj = {};
+subj{end+1} = textread('/NAS/tupac/protocoles/Strokdem/FMRI/TCog/Nocog_Cog_subjs.txt','%s \n');
+
+subjSS = {};
+subjSS{end+1} = textread('/NAS/tupac/protocoles/Strokdem/FMRI/TCog/CluSS-Cra_subjs.txt','%s \n');
+
+%% LOAD data
+X_fMRI = [];
+Y_les  = [];
+S = [];
+S_les  = [];
+
+nnodes = 313; %
+nedges = nnodes*(nnodes-1)/2;
+
+% load PSCI network to slect only the connexion of this network
+
+if MMSE
+    disp('MMSE connections on PSCI Network used')
+    load('/NAS/tupac/protocoles/Strokdem/FMRI/TCog/Network/NTC-TC_CORRELATION/FDR_perm_p0.05_CORRELATIONMMSE.mat','NBS')
+    Net_mat = full(NBS.con_mat);
+else
+    %load('/NAS/tupac/protocoles/Strokdem/FMRI/TCog/Network/gnocog-CraVsgcog-Cra_AGE-SEXE-ED/NBS_gnocog-Cra_gcog-Cra_perm_p0.05_3_0.mat','NBS');
+    %Net_mat = full(cell2mat(NBS.con_mat(1)));
+    Net_mat = load('/NAS/tupac/protocoles/Strokdem/Prediction/Composite/Specific_MultiDomain_Memory_Edges.mat','ED_mat');
+    Net_mat = Net_mat.ED_mat;
+end
+
+
+
+%% LOOP for subjects
+for s = 1:length(subj{1})
+        Subj = subj{1}{s};
+        
+        
+        % fMRI
+        connFile = fullfile(fsdir,Subj,'rSmri','Craddock_Parc','NB31','Connectome_Ck31.mat');
+        if exist(connFile,'file')
+            load(connFile);
+                if iSield(Connectome,'Cmat') 
+                    if length(Connectome.Cmat(:)) == nnodes^2
+                        
+                        if PCA
+                            vtmp = niak_mat2vec(Connectome.Cmat)';
+                        else
+                            Net_Co=Connectome.Cmat.*Net_mat; 
+                            sNet_Co = Net_Co + triu(Net_Co)';
+                            vtmp = niak_mat2vec(sNet_Co)'; 
+                        end
+                        %%% ---------- absolute values ---------
+                        X_fMRI(end+1,:) = abs(vtmp);
+                        %%% ------------------------------------
+                        S(end+1,1) = s;
+                    else
+                        X_fMRI(end+1,:) = 0;
+                    end
+                else
+                    X_fMRI(end+1,:) = 0;
+                end
+        else
+            X_fMRI(end+1,:) = 0;
+        end
+        
+        % Les
+% %         CoLes = [];
+% %         for j = 1:length(subjSS{1})
+% %             Subjss = subjSS{1}{j};
+% %             Subjst = char(Subj);
+% %             File=fullfile(fsdir,Subjss,'dti/Disconnectome',Subjst(1:end-3),[ 'Disconnectome_CK31_' Subjst(1:end-3) '.mat']);
+% %             
+% %             if exist(File,'file')
+% %                 load(File)
+% %                 ConnectomeLesion.Mdensity = ConnectomeLesion.Mdensity(2:end,2:end); % Remove the row and column for label 0
+% %                 ConnectomeLesion.Mdensity = triu(full(ConnectomeLesion.Mdensity))' + triu(full(ConnectomeLesion.Mdensity));
+% %                 CoLes(:,:,end+1) = ConnectomeLesion.Mdensity;
+% %             end
+% %         end
+% %         if exist(File,'file') && ~isempty(CoLes)
+% %            Y_les(end+1,:) = niak_mat2vec(mean(CoLes,3))';
+% %            S_les(end+1,1) = s;
+% %         else
+% %            Y_les(end+1,:) = 0;
+% %         end
+% 
+end
+% 
+% load('/NAS/tupac/protocoles/Strokdem/Prediction/fMRI_Disc_Y.mat','Y_les','S_les');
+Sfmri = S;
+Xfmri = X_fMRI(S,:);
+
+%% Chaco Score
+
+load('/NAS/tupac/protocoles/Strokdem/DTI/Disconnection/ChacoNs_NTCTC','ChacoNs','SUBJ_ID');
+
+Schaco = SUBJ_ID;
+Xchaco = zeros(length(subj{1}),nnodes);
+Xchaco(S,:) = ChacoNs';
+
+
+
+%% PCA reduction
+
+[C,~,~] =intersect(Sfmri,Schaco);
+
+
+
+
+if PCA 
+    disp('PCA reduction...')
+    [coeff, SCORE, LATENT,~,~] = pca(Xf); %pca center data
+
+    var_expl = cumsum(LATENT) / sum(LATENT);  
+    ID = find(var_expl < 0.96); % Get components that explained 95% of variance
+    reducedDimension = coeff(:,ID);
+    Zf = Xf(S,:) * reducedDimension;
+    
+    [Xx,~,~] = size(Xf);
+    Xy = length(ID);
+    X = zeros(Xx,Xy);
+    
+    X(S,:) = Zf;
+    
+    for i = 1 :Xx
+        X(i,:) = normVec(X(i,:));
+    end
+    
+    coeff = reducedDimension;
+    
+    
+    
+else
+    disp('Use predifined network, no PCA engaged...')
+    % first reduce dimension by removing 0 values
+    id = find(sum(Xf) ~= 0);
+    X = Xf(:,id);
+    [Xx,~,~] = size(X);
+    for i = 1 :Xx
+        X(i,:) = normVec(X(i,:));
+    end
+    
+    % 
+end
+%%%%%% LA NORMALISATION FC SERT A RIEN CAR DEJA ENTRE -1 1 %%%%%%%
+
+% Prepare output 
+[~,nFC,~] = size(X); %nFC = number of FC features
+
+%% get structural data for X
+
+[a,b,c] = xlsread('/NAS/tupac/protocoles/Strokdem/Prediction/Predictive_features.xls');
+
+f = [1 2 ];
+sx = sum(a,2);
+ID = find(~isnan(sx));
+
+str_feat = [];
+for i = 1:length(f)
+    str_feat(:,i) = normVec(a(ID,f(i)));
+    %str_feat(:,i) = zscore(a(ID,f(i)));
+end
+
+X_str = zeros(length(subj{1}),length(f));
+X_str(ID,:) = str_feat;
+
+X = [X X_str];
+
+%% Get prediction output :  Y
+
+L = 1;
+P = 2;
+E = 3;
+A = 4;
+M = 5;
+G = 5;
+V = 7;
+
+[Score,~,~] = xlsread('/NAS/tupac/protocoles/Strokdem/Prediction/MTL_zscore.xls');
+Y = Score(:,L);
+
+
+%% OUTPUT WRITING
+disp('Writing output file...')
+if PCA
+    save('/NAS/tupac/protocoles/Strokdem/Prediction/Data_for_prediction.mat','X','S','coeff','Y','nFC');
+else
+    save('/NAS/tupac/protocoles/Strokdem/Prediction/Data_for_prediction.mat','X','S','Y','id','nFC');
+end
+

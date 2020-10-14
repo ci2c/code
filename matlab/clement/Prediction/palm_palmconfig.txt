@@ -1,0 +1,12 @@
+# Configuration file for PALM.
+# Version alpha62, running in MATLAB.
+# 23-May-2017 08:59:05
+
+-i /NAS/tupac/protocoles/predistim/analyses/Surfacique/lh.predistim_all.thickness.fwhm10.fsaverage.mgh
+-s /NAS/tupac/protocoles/Strokdem/FS5.1_T2mask/fsaverage/surf/lh.white /home/global/freesurfer5.3/subjects/fsaverage/surf/lh.white.avg.area.mgh
+-m /NAS/tupac/matthieu/Masks/lh.mask.mgh
+-d /NAS/tupac/protocoles/predistim/analyses/Design.csv
+-f /NAS/tupac/protocoles/predistim/analyses/ANOVA.csv
+-fonly
+-T
+-tfce2D

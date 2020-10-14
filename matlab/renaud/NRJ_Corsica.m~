@@ -1,0 +1,185 @@
+function NRJ_Corsica(nsess,meanfile,aparcfile,epipath,net_comps)
+
+% usage : NRJ_Corsica(sicafile,meanfile,aparcfile,outdir,[net_comps])
+%
+% Inputs :
+%    nsess         : number of sessions
+%    meanfile      : mean functional file
+%    aparcfile     : File of freesurfer parcellation
+%    outdir        : output folder
+%
+% Options :
+%    net_comps     : components from network of interest (Default: [])
+%
+% Renaud Lopes @ CHRU Lille, June 2012
+
+if nargin ~= 4 && nargin ~= 5
+    disp('error');
+    return;
+end
+
+if nargin == 4
+    net_comps = [];
+end
+
+P          = spm_vol(meanfile);
+rot_func   = P.mat(1:3,1:3);
+trans_func = P.mat(1:3,4);
+
+V          = spm_vol(aparcfile);
+parc       = spm_read_vols(V);
+[nx ny nz] = size(parc);
+rot        = V.mat(1:3,1:3);
+trans      = V.mat(1:3,4);
+
+%% Mask of ventricules
+
+class = [4 43];
+
+for i=1:length(class)
+    ind=find(parc(:)==class(i));
+    [x{i},y{i},z{i}]=ind2sub([nx,ny,nz],ind);
+end
+
+mask  = zeros(P.dim);
+
+for i = 1:length(x)
+    
+    if(length(x{i}>0))
+        for j = 1:length(x{i})
+            coord{i}(j,:) = (rot * [x{i}(j) y{i}(j) z{i}(j)]' + trans)' ;
+        end
+        nb_peak = size(coord{i},1);
+
+        for num_peak = 1:nb_peak
+            peak(:,num_peak) = round(inv(rot_func)*(coord{i}(num_peak,:)' - trans_func));
+            if(peak(3,num_peak)<1)
+                peak(3,num_peak) = 1;
+            elseif(peak(3,num_peak)>P.dim(3))
+                peak(3,num_peak) = P.dim(3);
+            end
+            mask(peak(1,num_peak),peak(2,num_peak),peak(3,num_peak)) = 1;
+        end
+    end
+    
+end   
+P.fname = fullfile(epipath,'mask_vent.nii');
+spm_write_vol(P,mask);
+
+clear x y z mask coord class;
+
+%% Mask of ventricules
+
+class = [16];
+
+for i=1:length(class)
+    ind=find(parc(:)==class(i));
+    [x{i},y{i},z{i}]=ind2sub([nx,ny,nz],ind);
+end
+
+mask = zeros(P.dim);
+
+for i = 1:length(x)
+    
+    if(length(x{i}>0))
+        for j = 1:length(x{i})
+            coord{i}(j,:) = (rot * [x{i}(j) y{i}(j) z{i}(j)]' + trans)' ;
+        end
+        nb_peak = size(coord{i},1);
+
+        for num_peak = 1:nb_peak
+            peak(:,num_peak) = round(inv(rot_func)*(coord{i}(num_peak,:)' - trans_func));
+            if(peak(3,num_peak)<1)
+                peak(3,num_peak) = 1;
+            elseif(peak(3,num_peak)>P.dim(3))
+                peak(3,num_peak) = P.dim(3);
+            end
+            mask(peak(1,num_peak),peak(2,num_peak),peak(3,num_peak)) = 1;
+        end
+    end
+    
+end   
+P.fname = fullfile(epipath,'mask_stem.nii');
+spm_write_vol(P,mask);
+
+clear x y z mask coord class;
+
+
+%% SELECT NOISE COMPONENTS
+
+opt_corsica.scoreThres = 0.25;
+load(fullfile(epipath,'resClust.mat'));
+
+for k = 1:nsess
+
+    if k<10
+        ses = ['sess0' num2str(k)];
+    else
+        ses = ['sess' num2str(k)];
+    end
+    
+    load(fullfile(epipath,ses,'sicafile);
+
+    if k==1
+        hd    = spm_vol(fullfile(epipath,'mask_vent.nii'));
+        maskV = spm_read_vols(hd);
+        clear hd;
+        hd    = spm_vol(fullfile(epipath,'mask_stem.nii'));
+        maskS = spm_read_vols(hd);
+
+        [nx,ny,nz] = size(maskV);
+        maskNoise  = zeros(nx*ny*nz,1);
+
+        maskBrain = sica.mask(:);
+        maskNoise((maskV(:)>0)&(maskBrain>0)) = 1;
+        maskNoise((maskS(:)>0)&(maskBrain>0)) = 2;
+        maskNoise = reshape(maskNoise,[nx ny nz]);
+        clear maskV maskS
+
+        hd.fname = fullfile(epipath,'maskNoise.nii');
+        spm_write_vol(hd,maskNoise);
+    end
+
+    compSel_corsica = FMRI_CorsicaSpatialSelComp(sica,fullfile(epipath,'maskNoise.nii'),opt_corsica);
+    
+    % network components
+    use_comps = [];
+    for pp=1:length(net_comps)
+        listComp = char(resClust.compsName{find(resClust.P==net_comps(pp))});
+        ll = strmatch(ses,listComp);
+        for qq=1:length(ll)
+            a = findstr('.nii',listComp(ll(qq),:));
+            b = findstr('sica_comp',listComp(ll(qq),:));
+            use_comps = [use_comps str2num(listComp(ll(qq),b+10:a-1))];
+        end
+    end
+    
+    if(length(use_comps)>0)
+        noise_comps = setdiff(compSel_corsica.numcomp,use_comps);
+    else
+        noise_comps = compSel_corsica.numcomp;
+    end
+    noise_comps
+
+    %% REMOVE NOISE COMPONENTS
+
+    opt_data_r.comps  = noise_comps;
+    opt_data_r.addres = 1;
+    nt                = size(sica.data_name{1},1);
+    data              = st_suppress_comp(sica,opt_data_r);
+
+    header = sica.header;
+    files  = sica.data_name{1};
+    files2 = '';
+    for num_t = 1:nt
+        [pname,fname,ext] = fileparts(files(num_t,:));
+        fname = strcat('c',fname,ext);
+        files2 = strvcat(files2,fullfile(pname,fname));
+        header.fname = files2(num_t,:);
+        spm_write_vol(header,data(:,:,:,i));
+    end
+    varRem = round(100*sum(sica.contrib(noise_comps)));
+    disp([num2str(varRem) '% of data variance removed'])
+
+end
+clear resClust;

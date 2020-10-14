@@ -1,0 +1,27 @@
+function paraview_color_scheme(scheme, outfile, scheme_name)
+% usage : paraview_color_scheme(scheme, outfile, scheme_name)
+%
+% scheme  : name of a matlab color bar (i.e. 'jet') or N x 3 RGB table
+% outfile : path to the .xml output
+% s
+
+if nargin ~= 2
+    error('invalid usage');
+end
+
+if ischar(scheme) && exist('scheme') ~= 1
+    scheme='jet';
+    scheme = eval(scheme);
+end
+
+N = length(scheme);
+fid = fopen(outfile, 'w');
+fprintf(fid, '<ColorMap name="%s" space="HSV">\n', scheme);
+
+for i=1:N
+  x = [(i-1)/(N-1); colors(i,:)'];
+  fprintf(fid, '  <Point x="%f" o="1" r="%f" g="%f" b="%f"/>\n', x);
+end
+
+fwrite(fid, '</ColorMap>');
+fclose(fid);

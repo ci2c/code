@@ -1,0 +1,2 @@
+%% Load MNI coordinates files and save into a new file
+[ind,value,x,y,z] = textread('/NAS/tupac/protocoles/COMAJ/GIFT/batch_results_v5/Results/dr_stage3_DMN_CS_EOAD_tstat1_lmax.txt', '%f %f %f %f %f' );

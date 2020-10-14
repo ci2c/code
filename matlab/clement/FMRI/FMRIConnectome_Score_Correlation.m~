@@ -1,0 +1,221 @@
+function FMRIConnectome_Score_Correlation(Net_mat,SubjsFile,CovFile,ScoreXlsFile)
+
+% This function compute correlation between connexions highlighted from NBS
+% with a cognitive score, or any vector of value.
+%
+% Usage : Corr_Vec=FMRIConnectome_Score_Correlation(Net_mat,SubjsFile,ScoreFile)
+%
+% Inputs   : Net_mat   = sparse binary connexion matrix obtained from NBS.
+%            SubjsFile = txt file with the subject IDs.
+%            CovFile   = txt file with the subject covariates
+%            ScoreFile = xls file with the values to be correlated with.
+%                        First row = name of variates. 
+%
+% Outputs : .mat for matrix (same size as input) with edges that passed the test. Also .node and .edge files in output directory, readable with
+% BraiNet.
+%
+% Clément Bournonville - Ci2C - CHU Lille - 02/2016
+
+% For Strokdem :
+% Net_mat : /NAS/tupac/protocoles/Strokdem/FMRI/TCog/Network/gnocog-CraVsgcog-Cra_cov/NBS_gnocog-Cra_gcog-Cra_perm_p0.05_3_0.mat
+% SubjsFile : /NAS/tupac/protocoles/Strokdem/FMRI/TCog/Nocog_Cog_subjs.txt
+% CovFile : /NAS/tupac/protocoles/Strokdem/Clinical_Data/age-sexe-et.txt
+% ScoreFile : /NAS/tupac/protocoles/Strokdem/Clinical_Data/Corr_Neuropsy.xls
+
+%% CONFIG
+
+fsdir     = '/NAS/tupac/protocoles/Strokdem/FS5.1_T2mask';
+fMRIdir   = '/NAS/tupac/protocoles/Strokdem/FMRI/TCog';
+outConn   = 'Network'; 
+groupList = 'TCog';
+alpha     = 0.05;
+statCorr  = 'FDR';
+statSize  = 'Extent';
+outDir    = fullfile(fMRIdir,outConn,['NTC-TC_CORRELATION']);
+%% Loading
+
+subjs = textread(SubjsFile,'%s \n');
+[score,name,~] = xlsread(ScoreXlsFile);
+cov   = textread(CovFile);
+load(Net_mat,'NBS');
+Net_mat=full(cell2mat(NBS.con_mat));
+
+nb_score=size(score);
+
+%% BUILD GLM
+
+if ~exist(outDir,'dir')
+    cmd = sprintf('mkdir %s',outDir);
+    unix(cmd);
+end
+
+
+Ng = length(subjs);
+
+clear k
+
+% Build design matrix and load connectivity matrices
+ID=find(Net_mat > 0);
+nedges=size(ID);
+
+%X      = zeros(Ng,1);
+%Y      = zeros(Ng,nedges(1));
+temp   = 0;
+Maint=[];
+sumn=[];
+subjl={};
+
+for i = 1 %:nb_score(2)
+    disp(i)
+    no_score=find(isnan(score(:,i)) ==1); % Find value where any variate is entered (for example, a patient that did not do the test)
+    clear Y X Cov Score GLM STATS
+    z=1;
+    
+    for k = 1:Ng
+        subj = subjs{k};
+
+        connFile = fullfile(fsdir,subj,'rsfmri','Craddock_Parc','Connectome_ck.mat');
+        if exist(connFile,'file') && ~ismember(k,no_score) % Use the no_score
+           
+            X(z,:) = 1;
+            load(connFile);
+            Net_Co=Connectome.Cmat.*Net_mat;
+            [sx,sy,sz]=size(Net_Co);
+            C = find(Net_Co ~=0);
+            
+            for j=1:length(C) %% To make Net_Co square, needed for niak_mat2vec
+                [x,y]=coord1Dto3D(C(j),sx,sy,sz);
+                Net_Co(y,x)=Net_Co(C(j));
+            end
+            
+            vtmp = niak_mat2vec(Net_Co)';
+            Y(z,:) = vtmp;  
+            Cov(z,:)=cov(k,:);
+            Score(z,:)=score(k,i);
+            z=z+1;
+            
+            R=betweenness_bin(Net_Co);
+            
+            
+            
+            Maint(end+1,1)=1;
+            sumn(end+1,1)=sum(abs(Net_Co(:,250)));
+        else 
+            Maint(end+1,1)=0;
+            sumn(end+1,1)=0;
+        end  
+            subjl{end+1,1}=subj;
+    end
+   
+disp(sumn)
+disp(subjl)
+% Final design matrix 
+
+% contrast
+    contrast = [0 zeros(1,size(cov,2)) 1];
+
+
+    X = [X Cov Score];
+
+    [Yx,Yy]=size(Y);
+
+% Extract ~= 0 columns of Y
+    ID=find(Y(1,:)~=0);
+    Yfin=Y(:,ID);
+
+
+%% GLM
+    glmFile = fullfile(outDir,['FDR_glm_g' 'correlation' '-' cell2mat(name(i)) '.mat']);
+    if ~exist(glmFile,'file')
+        GLM.y           = Yfin;
+        GLM.X           = X;
+        GLM.contrast    = contrast;
+        GLM.test        = 'ttest';
+        GLM.perms       = 10000;
+        STATS.test_stat = NBSglm(GLM);
+        save(glmFile,'GLM','STATS','-v7.3');
+        %clear GLM STATS;
+    end
+
+%% STATS
+
+%[labidx,names] = textread('/home/renaud/NAS/renaud/volunteers_1000connectome/beijing/aparc2009LOI_rename.txt','%d %s');
+%coord_parc     = load('/home/renaud/NAS/renaud/volunteers_1000connectome/beijing/aparc2009LOI_coord.txt');
+    [labidx,names] = textread('/NAS/tupac/protocoles/Strokdem/test/temp_craddock/Ck_nodes.txt','%d %s');
+    coord_parc     = load('/NAS/tupac/protocoles/Strokdem/test/temp_craddock/Ck_coord.txt');
+    load(glmFile,'GLM','STATS');
+
+    STATS.alpha = alpha;
+    STATS.size  = 'Extent'; %'Intensity or Extent';
+    STATS.N     = length(names);
+
+
+    
+    clear NBS;
+    
+    NBS.node_coor  = coord_parc;
+    NBS.node_label = names;
+    %[NBS.n,NBS.con_mat,NBS.pval,NBS.FDRe] = NBSfdr(STATS,1.0167,GLM);
+    [~,~,~,FDRe] = NBSfdr(STATS,1.0167,GLM);
+    
+    
+    if ~isempty(FDRe)
+        
+        vec=zeros(1,Yy);
+    
+    % Recompose original networks with only edges that were accepted for
+    % FDR (because empty edges were removed originally for GLM)
+        vec(ID(FDRe))=1;
+        test_statf=zeros(GLM.perms+1,Yy);
+        test_statf(:,ID(FDRe))=STATS.test_stat(:,FDRe);
+        STATS.test_stat=test_statf;
+        NBS.con_mat=niak_vec2mat(vec,0);
+        
+    % Find coordinates of edges for gephi use
+    
+        id=find(NBS.con_mat ~= 0);
+        for f=1:length(id)
+            [x,y,~]=coord1Dto3D(id(f),313,313,1);
+            Coord(f,:)=[x-1,y-1]; %Gehi nodes start at 0
+        end
+        
+        save(fullfile(outDir,[statCorr '_perm_p' num2str(alpha) '_' 'CORRELATION' cell2mat(name(i)) '.mat']),'NBS','GLM','STATS','Coord','-v7.3');
+    
+        C = full(NBS.con_mat);
+        C = C+C';
+        C = C>0;
+        deg = degrees_und(C);
+
+        % % BrainNet
+        % nodes
+        nodes.coords = coord_parc;
+        nodes.colors = ones(1,size(coord_parc,1));
+        nodes.sizes  = deg';
+        nodes.labels = names;
+
+        fid = fopen(fullfile(outDir,[statCorr '_perm_p' num2str(alpha) '_' 'CORRELATION' cell2mat(name(i)) '.node']),'w');
+        
+        for cj = 1:size(nodes.coords,1)
+            % Coordinates
+            fprintf(fid,'%f ',nodes.coords(cj,1));
+            fprintf(fid,'%f ',nodes.coords(cj,2));
+            fprintf(fid,'%f ',nodes.coords(cj,3));
+
+            % Colors
+            fprintf(fid,'%f ',nodes.colors(cj));
+
+            % Sizes
+            fprintf(fid,'%f ',nodes.sizes(cj));
+
+            % Labels
+            fprintf(fid,'%s ',nodes.labels{cj});
+
+            fprintf(fid,'\n');
+        end
+        fclose(fid);
+
+        % edges
+        FMRI_CreateEdgeFileBrainNet(fullfile(outDir,[statCorr '_perm_p' num2str(alpha) '_' 'CORRELATION' cell2mat(name(i)) '.edge']),double(C).*niak_vec2mat(STATS.test_stat(1,:),0)); 
+    end  
+end
+

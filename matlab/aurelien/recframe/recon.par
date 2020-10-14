@@ -1,0 +1,14 @@
+-----------------------------------
+ReconFramework (C) GyroTools - V1.1
+-----------------------------------
+acq_mode:                0
+acq_ovs:              2.00 2.00 1.00 0.00
+acq_matrix:            616  391    1    0
+acq_immed_avg:           0
+rec_matrix:            512  412    1
+rec_pixel_depth:        12
+rec_img_ori:             1
+rec_img_shift:           0    0    0
+lab_file_name:        sri2008061214483327184680b
+raw_file_name:        sri2008061214483327174680b
+series_oid:           41770

@@ -1,0 +1,23 @@
+function T1_DartelCreateTemplate(fsdir,subjs,datafolder)
+
+spm('Defaults','fMRI');
+
+spm_jobman('initcfg'); % SPM8 only
+
+rc1FileList = [];
+rc2FileList = [];
+
+for k = 1:length(subjs)
+    DirImg      = dir(fullfile(fsdir,subjs{k},datafolder,'rc1*');
+    rc1FileList = [rc1FileList;{fullfile(datapath,'anat',DirImg(1).name)}];
+    DirImg      = dir('rc2*');
+    rc2FileList = [rc2FileList;{fullfile(datapath,'anat',DirImg(1).name)}];
+end
+
+matlabbatch{1,1}.spm.tools.dartel.warp.images{1,1} = rc1FileList;
+matlabbatch{1,1}.spm.tools.dartel.warp.images{1,2} = rc2FileList;
+
+
+fprintf(['Running DARTEL: Create Template.\n']);
+spm_jobman('run',matlabbatch);
+

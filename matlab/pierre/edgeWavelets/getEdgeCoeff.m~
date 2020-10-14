@@ -1,0 +1,58 @@
+function [C, D] = getEdgeCoeff(h, g, Hedge, Gedge, X, J)
+% Usage: [C, D] = getEdgeCoeff(h, g, hleft, gleft, X, J)
+%
+% Input :  h     : refinement filter of a compactly supported orthonormal
+%                  wavelet family
+%          g     : high pass filter corresponding to h
+%          hleft : Left boundary h filter
+%          gleft : left boundary g filter
+%          X     : signal to filter
+%          J     : depth of decomposition
+% Output : C     : approximation coefficients
+%          D     : detail coefficients
+
+if nargin ~= 6
+    error('Invalid usage');
+end
+
+% [Hedge, Gedge, Pre, Post] = computeEdgeMat(h);
+N = size(Hedge, 1);
+
+if size(X, 1) < size(X, 2)
+    X = X';
+end
+
+C = [];
+D = [];
+
+% Modified the sequence length to facilitate reconstruction
+L = 
+
+for j = 1 : J
+%     L = size(X, 1);
+%     if floor(L./2) .* 2 ~= L
+%         X = [X; 0];
+%         L = L+1;
+%     end
+
+    H = zeros(L./2, L);
+    G = zeros(L./2, L);
+
+    H(1:N, 1:size(Hedge, 2)) = Hedge;
+    G(1:N, 1:size(Gedge, 2)) = Gedge;
+
+    for k = N : (L./2 - 1)
+        for l = 0 : (L-1)
+            try
+                H(k+1, l+1) = h(l - 2*k + N) ./ sqrt(2);
+                G(k+1, l+1) = g(l - 2*k + N) ./ sqrt(2);
+            catch
+                H(k+1, l+1) = 0;
+                G(k+1, l+1) = 0;
+            end
+        end
+    end
+    C = setfield(C, strcat('j', int2str(j)), H*X);
+    D = setfield(D, strcat('j', int2str(j)), G*X);
+    X = H*X;
+end

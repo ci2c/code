@@ -1,0 +1,5 @@
+% add tolbox to path
+addpath('/home/renaud/SVN/matlab/renaud/afni_matlab');
+addpath('/home/renaud/SVN/matlab/pierre/ReadMedData3D');
+addpath('/home/renaud/SVN/matlab/pierre/ReadMedData3D');
+

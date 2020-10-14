@@ -1,0 +1,3 @@
+function DTI_CreateVTKFromConnectome(Connectome_file,fibers_file,thresh)
+
+load(Connectome_file);

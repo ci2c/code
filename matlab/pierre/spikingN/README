@@ -1,0 +1,26 @@
+Five mex files need to be compiled prior to simulations.
+To compile these files, run the following lines in Matlab:
+
+mex romiok_dir.c rand_mt.c
+mex snmex.c
+mex modulespike_thr.c rand_mt.c
+mex histi.c
+mex randipl.c rand_mt.c
+
+The script main_simulation_script.m is the main simulation script.
+All the other scripts do not need to be directly invoked.
+
+main_simulation_script(htype,h,p)
+
+%MAIN SIMULATION SCRIPT
+
+%Inputs:        htype,  hierarchical connectivity type; 'pow' or 'exp'
+%               h    ,  exponent size (e.g. 8/3 if 'pow', 4/5 if 'exp')
+%               p    ,  proportion of intermodule edges (e.g. 0.3)
+
+%Outputs:       MS   ,  module spike matrix
+%               Z    ,  avalanche distributions and their properties
+%                       (see powerlaw_pval function for details)
+
+
+Example [Ms Z] = main_simulation_script('pow',8/3,0.5);

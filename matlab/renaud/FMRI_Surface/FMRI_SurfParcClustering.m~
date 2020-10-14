@@ -1,0 +1,148 @@
+clear all; close all;
+
+fsdir    = '/home/fatmike/renaud/nico_data/group3';
+subjlist = {'BRYCH','CARAL','CLIMI','DASSY','FONCO','GAMBE','LAZBR','LINPA','MORMI','TARPA'};
+prefix   = 'fwhm5_fmri';
+annot    = 'my_parc50';
+
+s = 1;
+
+
+%% READ FMRI DATA
+
+List_lh = SurfStatListDir(fullfile(fsdir,subjlist{s},'surffmri',['lh.' prefix '*']));
+List_rh = SurfStatListDir(fullfile(fsdir,subjlist{s},'surffmri',['rh.' prefix '*']));
+Data    = SurfStatReadData([List_lh]);
+data_lh = Data.Data.Data;
+Data    = SurfStatReadData([List_rh]);
+data_rh = Data.Data.Data;
+nbleft  = size(data_lh,1);
+data    = [data_lh;data_rh];
+clear List_rh List_lh Data data_lh data_rh;
+
+
+%% PREPROCESSING
+
+tseries = data';
+clear data; 
+
+% DETRENDING
+
+ord_detr = 2;
+fprintf('Correction of %ith order polynomial trends \n',ord_detr)
+tseries = detrend_array(tseries,ord_detr);
+
+% NORMALISE
+
+type_norm = 0;
+fprintf('Correction to zero mean and unit temporal variance \n');
+[tseries,M,Varr] = st_normalise(tseries,type_norm);
+
+data_lh = tseries(:,1:nbleft)';
+data_rh = tseries(:,nbleft+1:end)';
+
+
+%% EXTRACT MEAN TIME COURSES PER ROI
+
+[vertices_lh, label_lh, colortable_lh] = read_annotation([fsdir, '/', subjlist{s}, '/label/lh.', annot, '.annot']);
+[vertices_rh, label_rh, colortable_rh] = read_annotation([fsdir, '/', subjlist{s}, '/label/rh.', annot, '.annot']);
+
+nframes      = size(data_lh,2);
+
+% left hemisphere
+labellist_lh = unique(label_lh);
+nroileft     = length(labellist_lh);
+meanTimes_lh = zeros(nroileft,nframes);
+
+for k = 1:nroileft
+    
+    vert = find(label_lh==labellist_lh(k));
+    meanTimes_lh(k,:) = mean(data_lh(vert,:),1);
+    
+end
+
+% right hemisphere
+labellist_rh = unique(label_rh);
+nroiright    = length(labellist_rh);
+meanTimes_rh = zeros(nroiright,nframes);
+
+for k = 1:nroiright
+    
+    vert = find(label_rh==labellist_rh(k));
+    meanTimes_rh(k,:) = mean(data_rh(vert,:),1);
+    
+end
+
+save(fullfile(fsdir,subjlist{s},'surffmri','meanTimes.mat'),'meanTimes_lh','meanTimes_rh');
+
+%% CONNECTIVITY MATRIX
+
+meanTimes = [meanTimes_lh;meanTimes_rh]';
+
+[nb_t,nb_reg] = size(meanTimes);
+S             = (nb_t-1)*cov(meanTimes);
+D             = diag(1./sqrt(diag(squeeze(S))));
+ConnMat       = D*squeeze(S)*D;
+nb_tir     = 100;
+tS         = donnees_vers_covariance_hierarchique(donnees,nb_tir);
+tR         = covariance_vers_correlation(tS);
+
+% %% HIERARCHICAL CLUSTERING
+% 
+% % X    = [meanTimes_lh;meanTimes_rh]';
+% % type = 'corr';
+% % hier = FMRI_HierarchicalClustering(X,type);
+% % save(fullfile(fsdir,subjlist{s},'surffmri','HierClustering.mat'),'hier');
+% % 
+% % nbclasses = 40;
+% % P = FMRI_Hier2Partition(hier,nbclasses,1);
+% % save(fullfile(fsdir,subjlist{s},'surffmri','HierClustering.mat'),'hier','P','nbclasses');
+% 
+% 
+% %% BUILD MAPS
+% 
+% load(fullfile(fsdir,subjlist{s},'surffmri','HierClustering.mat'),'hier','P','nbclasses');
+% 
+% % left hemisphere
+% P_lh   = P(1:nroileft);
+% map_lh = zeros(size(label_lh));
+% 
+% for clus = 1:nbclasses
+%     
+%     ind = find(P_lh==clus);
+%     if(length(ind)>0)
+%         list_roi = unique(labellist_lh(ind));
+%         for k = 1:length(list_roi)
+%             vert = find(label_lh==list_roi(k));
+%             map_lh(vert) = clus;
+%         end
+%     end
+%     
+% end
+% 
+% % right hemisphere
+% P_rh   = P(nroileft+1:end);
+% map_rh = zeros(size(label_rh));
+% 
+% for clus = 1:nbclasses
+%     
+%     ind = find(P_rh==clus);
+%     if(length(ind)>0)
+%         list_roi = unique(labellist_rh(ind));
+%         for k = 1:length(list_roi)
+%             vert = find(label_rh==list_roi(k));
+%             map_rh(vert) = clus;
+%         end
+%     end
+%     
+% end
+% 
+% surf      = SurfStatReadSurf([fullfile(fsdir,subjlist{s},'surf','lh.white')]);
+% fnumleft  = size(surf.tri,1);
+% surf      = SurfStatReadSurf([fullfile(fsdir,subjlist{s},'surf','rh.white')]);
+% fnumright = size(surf.tri,1);
+% 
+% %write_annotation(fullfile(fsdir,subjlist{s},'surffmri','lh.HierClustering.annot'), (0:length(subj_surf_left.coord)-1)', Subj_label_left', left_colortable);
+% 
+% write_curv(fullfile(fsdir,subjlist{s},'surffmri','lh.HierClustering'),map_lh,fnumleft);
+% write_curv(fullfile(fsdir,subjlist{s},'surffmri','rh.HierClustering'),map_rh,fnumright);

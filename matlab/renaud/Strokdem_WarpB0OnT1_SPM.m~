@@ -1,0 +1,58 @@
+function Strokdem_WarpB0OnT1_SPM(datapath)
+
+%% Initialise SPM defaults
+%--------------------------------------------------------------------------
+spm('Defaults','fMRI');
+
+spm_jobman('initcfg'); % SPM8 only
+
+cd(datapath);
+
+%% Select scans
+%--------------------------------------------------------------------------
+trg = fullfile(datapath,'orig','t1_ras.nii');
+mov = fullfile(datapath,'warp','epi_0000.nii');
+oth = spm_select('FPList', fullfile(datapath,'warp'),'.*\.nii$');
+
+matlabbatch{1}.spm.spatial.coreg.estwrite.ref = {'/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/orig/t1_ras.nii,1'};
+matlabbatch{1}.spm.spatial.coreg.estwrite.source = {'/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0000.nii,1'};
+%%
+matlabbatch{1}.spm.spatial.coreg.estwrite.other = {
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_FA.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_L1.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_L2.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_L3.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_MD.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_MO.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_S0.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_V1.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_V2.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_V3.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/data_corr_brain.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0000.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0001.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0002.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0003.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0004.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0005.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0006.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0007.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0008.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0009.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0010.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0011.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0012.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0013.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0014.nii,1'
+                                                   '/home/fatmike/Protocoles_3T/Strokdem/FS5.1/370207MJC_72H/dti/warp/epi_0015.nii,1'
+                                                   };
+%%
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.cost_fun = 'nmi';
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.sep = [4 2];
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+matlabbatch{1}.spm.spatial.coreg.estwrite.eoptions.fwhm = [7 7];
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.interp = 6;
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.wrap = [0 1 0];
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.mask = 0;
+matlabbatch{1}.spm.spatial.coreg.estwrite.roptions.prefix = 'r';

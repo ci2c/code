@@ -1,0 +1,235 @@
+function FMRI_Corsica(sica,meanfile,aparcfile,epipath,net_comps,resClust)
+
+% usage : FMRI_Corsica(sicafile,meanfile,aparcfile,outdir,[net_comps])
+%
+% Inputs :
+%    sica          : sica results
+%    meanfile      : mean functional file
+%    aparcfile     : File of freesurfer parcellation
+%    epipath       : epi folder
+%
+% Options :
+%    net_comps     : components from network of interest (Default: [])
+%    resClust      : clustering results
+%
+% Renaud Lopes @ CHRU Lille, June 2012
+
+if nargin ~= 4 && nargin ~= 5 && nargin ~= 6
+    disp('error');
+    return;
+end
+
+if nargin == 5
+    net_comps = [];
+    resClust  = [];
+end
+
+P          = spm_vol(meanfile);
+rot_func   = P.mat(1:3,1:3);
+trans_func = P.mat(1:3,4);
+
+V          = spm_vol(aparcfile);
+parc       = spm_read_vols(V);
+[nx ny nz] = size(parc);
+rot        = V.mat(1:3,1:3);
+trans      = V.mat(1:3,4);
+
+%% Mask of ventricles
+
+class = [4 43];
+
+for i=1:length(class)
+    ind=find(parc(:)==class(i));
+    [x{i},y{i},z{i}]=ind2sub([nx,ny,nz],ind);
+end
+
+mask  = zeros(P.dim);
+
+for i = 1:length(x)
+    
+    if(length(x{i}>0))
+        for j = 1:length(x{i})
+            coord{i}(j,:) = (rot * [x{i}(j) y{i}(j) z{i}(j)]' + trans)' ;
+        end
+        nb_peak = size(coord{i},1);
+
+        for num_peak = 1:nb_peak
+            peak(:,num_peak) = round(inv(rot_func)*(coord{i}(num_peak,:)' - trans_func));
+            if(peak(3,num_peak)<1)
+                peak(3,num_peak) = 1;
+            elseif(peak(3,num_peak)>P.dim(3))
+                peak(3,num_peak) = P.dim(3);
+            end
+            mask(peak(1,num_peak),peak(2,num_peak),peak(3,num_peak)) = 1;
+        end
+    end
+    
+end   
+P.fname = fullfile(epipath,'mask_vent.nii');
+spm_write_vol(P,mask);
+
+clear x y z mask coord class;
+
+%% Mask of brainstem
+
+class = [16];
+
+for i=1:length(class)
+    ind=find(parc(:)==class(i));
+    [x{i},y{i},z{i}]=ind2sub([nx,ny,nz],ind);
+end
+
+mask = zeros(P.dim);
+
+for i = 1:length(x)
+    
+    if(length(x{i}>0))
+        for j = 1:length(x{i})
+            coord{i}(j,:) = (rot * [x{i}(j) y{i}(j) z{i}(j)]' + trans)' ;
+        end
+        nb_peak = size(coord{i},1);
+
+        for num_peak = 1:nb_peak
+            peak(:,num_peak) = round(inv(rot_func)*(coord{i}(num_peak,:)' - trans_func));
+            if(peak(3,num_peak)<1)
+                peak(3,num_peak) = 1;
+            elseif(peak(3,num_peak)>P.dim(3))
+                peak(3,num_peak) = P.dim(3);
+            end
+            mask(peak(1,num_peak),peak(2,num_peak),peak(3,num_peak)) = 1;
+        end
+    end
+    
+end   
+P.fname = fullfile(epipath,'mask_stem.nii');
+spm_write_vol(P,mask);
+
+clear x y z mask coord class;
+
+
+%% SELECT NOISE COMPONENTS
+
+opt_corsica.scoreThres = 0.25;
+
+hd    = spm_vol(fullfile(epipath,'mask_vent.nii'));
+maskV = spm_read_vols(hd);
+clear hd;
+hd    = spm_vol(fullfile(epipath,'mask_stem.nii'));
+maskS = spm_read_vols(hd);
+
+[nx,ny,nz] = size(maskV);
+maskNoise  = zeros(nx*ny*nz,1);
+
+maskBrain = sica.mask(:);
+maskNoise((maskV(:)>0)&(maskBrain>0)) = 1;
+maskNoise((maskS(:)>0)&(maskBrain>0)) = 2;
+maskNoise = reshape(maskNoise,[nx ny nz]);
+clear maskV maskS
+
+hd.fname = fullfile(epipath,'maskNoise.nii');
+spm_write_vol(hd,maskNoise);
+
+compSel_corsica = FMRI_CorsicaSpatialSelComp(sica,fullfile(epipath,'maskNoise.nii'),opt_corsica);
+    
+% network components
+use_comps = [];
+for pp=1:length(net_comps)
+    listComp = char(resClust.compsName{find(resClust.P==net_comps(pp))});
+    ll = strmatch(sica.subject,listComp);
+    for qq=1:length(ll)
+        a = findstr('.nii',listComp(ll(qq),:));
+        b = findstr('sica_comp',listComp(ll(qq),:));
+        use_comps = [use_comps str2num(listComp(ll(qq),b+10:a-1))];
+    end
+end
+
+if(length(use_comps)>0)
+    noise_comps = setdiff(compSel_corsica.numcomp,use_comps);
+else
+    noise_comps = compSel_corsica.numcomp;
+end
+noise_comps
+
+%% REMOVE NOISE COMPONENTS
+
+opt_data_r.comps  = noise_comps;
+opt_data_r.addres = 1;
+nt                = size(sica.data_name,1);
+data              = st_suppress_comp(sica,opt_data_r);
+
+header = sica.header;
+files  = sica.data_name;
+files2 = '';
+for num_t = 1:nt
+    [pname,fname,ext] = fileparts(files(num_t,:));
+    fname = strcat('c',fname,ext);
+    files2 = strvcat(files2,fullfile(pname,fname));
+    header.fname = files2(num_t,:);
+    spm_write_vol(header,data(:,:,:,num_t));
+end
+varRem = round(100*sum(sica.contrib(noise_comps)));
+disp([num2str(varRem) '% of data variance removed'])
+
+%% DETERMINE NORMALIZATION PARAMETERS 
+
+disp('Data normalization...')
+a       = which('spm_normalise');
+[path]  = fileparts(a);
+VG      = fullfile(path,'templates','EPI.mnc');
+VF      = list_files{1}(1,:);
+matname = '';
+VWG     = '';
+VWF     = '';
+opt_normalize.estimate.smosrc  = 8;
+opt_normalize.estimate.smoref  = 0;
+opt_normalize.estimate.regtype = 'mni';
+opt_normalize.estimate.weight  = '';
+opt_normalize.estimate.cutoff  = 25;
+opt_normalize.estimate.nits    = 16;
+opt_normalize.estimate.reg     = 1;
+opt_normalize.estimate.wtsrc   = 0;
+
+if ~exist([rundir 'param_normalize.mat'])
+    params_normalize = spm_normalise(VG,VF,matname,VWG,VWF,opt_normalize.estimate);
+    save(fullfile(outfolder,'nedica',subj,'param_normalize.mat'),'params_normalize');
+else
+    load(fullfile(outfolder,'nedica',subj,'param_normalize.mat'),'params_normalize');
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+d = sica.header;
+files = sica.data_name{1};
+nt = size(files,1);
+clear sica
+files2 = '';
+
+for num_t = 1:nt
+    [pname,fname,ext] = fileparts(files(num_t,:));
+    if flag.noise
+        fname = strcat('c',fname,ext);
+    else
+        fname = strcat(fname,ext);
+    end
+    files2 = strvcat(files2,fullfile(pname,fname));
+end
+% WRITE NORMALIZED COMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+opt_normalize.write.preserve = 0;
+opt_normalize.write.bb = [-78 -112 -50 ; 78 76 85];
+%opt_normalize.write.bb = [-90 -126 -72 ; 90 90 108];
+opt_normalize.write.vox = sqrt(sum(d.mat(1:3,1:3).^2));
+opt_normalize.write.interp = 1;
+opt_normalize.write.wrap = [0 0 0];
+warning('off')
+spm_write_sn(files2,params_normalize,opt_normalize.write);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+files3 = '';
+for num_t = 1:nt
+    [pname,fname,ext] = fileparts(files2(num_t,:));
+    fname = strcat('w',fname,ext);
+    files3 = strvcat(files3,fullfile(pname,fname));
+end
+files2 = files3;
+clear files3
+
+
+

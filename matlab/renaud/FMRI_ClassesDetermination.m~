@@ -1,0 +1,181 @@
+function [nbclasses,resClust] = FMRI_ClassesDetermination(datapath,resClust,maskfile,subjectlist,opt)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+disp('*****************************************')
+disp('CLASSES T-MAPS COMPUTING...')
+
+nsess = round(length(resClust.compsName)/resClust.nbCompSica);
+
+% Recherche des donnees selectionnees
+nbclasses     = opt.nbclasses; 
+typeThresHier = opt.thresHierType;
+
+compsName     = resClust.compsName;
+V             = spm_vol(maskfile);
+maskB_sica    = spm_read_vols(V);
+maskB_sica    = maskB_sica > 0;
+hier          = resClust.hier;
+contrib       = resClust.contrib;
+header_sica   = resClust.header_sica;
+nbCompSica    = resClust.nbCompSica;
+timeCourses   = resClust.timeCourses;
+[nx,ny,nz]    = size(maskB_sica);
+maskB_sica_v  = maskB_sica(:);
+
+if nsess == 1
+    
+    disp('single run - use individual absolute sica components')
+    disp('single run - force number of classes equal to the number of sica components')
+    nbclasses     = nbCompSica;
+    opt.nbclasses = nbclasses;
+    disp(['number of classes : ',num2str(nbclasses)])
+    s             = findstr(compsName{1},filesep);
+    subjectName   = compsName{1}(1:s(1)-1);
+    DirImg        = dir(fullfile(datapath,subjectName,'spatialComp','wsica_comp*'));
+    FileList      = [];
+    for j = 1:length(DirImg)
+        FileList = [FileList;fullfile(datapath,subjectName,'spatialComp',[DirImg(j).name])];
+    end
+    Vtmp          = spm_vol(FileList);
+    LFNcomps      = spm_read_vols(Vtmp);
+    tMaps         = LFNcomps;
+    P             = ned_hier2P(hier,nbclasses,1);
+    clear FileList Vtmp LFNcomps DirImg;
+    
+else
+    
+    if strcmp(typeThresHier,'auto')
+        disp(['classes determination type : ',typeThresHier])
+        P             = FMRI_SelHierClass(hier,compsName,subjectlist);
+        nbclasses     = max(P);
+        opt.nbclasses = nbclasses;
+        disp(['number of classes : ',num2str(nbclasses)])
+    elseif strcmp(typeThresHier,'manual')
+        disp(['classes determination type : ',typeThresHier])
+        disp(['number of classes : ',num2str(nbclasses)])
+        P = ned_hier2P(hier,nbclasses,1);
+    end
+    
+    load(fullfile(datapath,'resClustData.mat'));
+    
+    % Prise en compte du signe
+    meanMaps = zeros(nx*ny*nz,1);
+    varMaps  = zeros(nx*ny*nz,1);
+    tMaps    = zeros(nx*ny*nz,max(P));
+    signComp = [];
+    
+    for pp =1:max(P)
+        disp(num2str(pp))
+        if length(find(P==pp))<500
+            data = dataHier(:,find(P==pp));
+            C    = zeros(size(data,2),size(data,2));
+            for ppp=1:size(data,2)
+                for qqq=1:size(data,2)
+                    C(ppp,qqq) = data(:,ppp)'*data(:,qqq);
+                end
+            end
+            S        = (1/(size(data,1)-1)).*C;
+            R        = S./sqrt(diag(S)*diag(S)');
+            R(eye(size(R))==1) = 0;
+            [M,I]    = max(abs(R));
+            clear C R S
+            [MM,J]   = max(M);
+            signR    = sign((1/(size(data,1)-1))*data(:,J)'*data);
+            signComp = [signComp signR];
+            gI       = mean(data.*repmat(signR,size(data,1),1),2);
+            varI     = var(data.*repmat(signR,size(data,1),1),[],2);
+            clear data
+            meanMaps(maskB_sica_v,1) = gI';
+            clear gI
+            varMaps(maskB_sica_v,1)  = varI';
+            clear varI
+            tMaps(maskB_sica_v,pp) = meanMaps(maskB_sica_v,1)./sqrt(varMaps(maskB_sica_v,1)).*sqrt(length(I)-1);
+        else
+            tMaps(maskB_sica_v,pp) = 1;
+        end
+    end
+    
+    clear meanMaps varMaps dataHier
+    tMaps = reshape(tMaps,[nx ny nz max(P)]);
+    
+end
+
+disp(['stats processing...'])
+represent = [];
+unicity   = [];
+for uu=1:nbclasses
+    AA = char(compsName{find(P == uu)});
+    [represent(uu),unicity(uu)] = FMRI_ComputeScores(AA,subjectlist);
+end
+ 
+numClass  = size(tMaps,4);
+tMaps_pos = tMaps;
+
+[success] = mkdir(datapath,'Classes');
+delete([datapath filesep 'Classes' filesep 'tMapsClass*.nii']);
+
+for k = 1:size(tMaps_pos,4)
+    num = num2str(k);
+    l = length(num);
+    num = [repmat('0',[1 4-l]) num ];
+    header_sica.fname = fullfile(datapath,'Classes',['tMapsClass' num '.nii']);
+    spm_write_vol(header_sica,tMaps_pos(:,:,:,k));
+end
+
+list_tmp = dir([datapath filesep 'Classes' filesep 'tMapsClass*.nii']);
+PP = [datapath filesep 'wrawVoxSize.nii'];
+PP = strvcat(PP,[datapath filesep 'maskB.nii']);
+for kk=1:length(list_tmp)
+    PP = strvcat(PP,[datapath filesep 'Classes' filesep list_tmp(kk).name]);
+end
+flag_reslice.interp = 0;
+flag_reslice.wrap   = [0 0 0];
+flag_reslice.mask   = 1;
+flag_reslice.mean   = 0;
+flag_reslice.which  = 1;
+spm_reslice(PP,flag_reslice)
+%         
+        delete([datapath filesep 'Classes' filesep 'tMapsClass*.nii']);
+        
+        DirImg        = dir(fullfile(datapath,'Classes','rtMapsClass00*.nii'));
+        FileList      = [];
+        for j = 1:length(DirImg)
+            FileList = [FileList;fullfile(datapath,'Classes',[DirImg(j).name])];
+        end
+        V         = spm_vol(FileList);
+        tMaps_tmp = spm_read_vols(V);
+        clear FileList DirImg;
+
+        tMaps_tmp(isnan(tMaps_tmp)) = 0;
+        
+        delete([datapath filesep 'Classes' filesep 'rtMapsClass*.nii']);
+        
+        header = V(1);
+        tMaps = tMaps_tmp;
+        
+        st_write_analyze(tMaps,header,[res_dir filesep selectionName filesep 'tMapsClass'])
+        
+        if(isunix)
+            unix(['mv ', res_dir filesep selectionName filesep 'rmaskB_sica.img ', res_dir filesep selectionName filesep 'maskB.img']);
+            unix(['mv ', res_dir filesep selectionName filesep 'rmaskB_sica.hdr ', res_dir filesep selectionName filesep 'maskB.hdr']);
+        elseif(ispc)
+            movefile([res_dir filesep selectionName filesep 'rmaskB_sica.img'],[res_dir filesep selectionName filesep 'maskB.img']);
+            movefile([res_dir filesep selectionName filesep 'rmaskB_sica.hdr'],[res_dir filesep selectionName filesep 'maskB.hdr']);
+        end
+            
+        [maskB,V] = st_read_analyze('maskB.img',[res_dir filesep selectionName],0);
+        maskB = maskB > 0;
+
+resClust.compsName   = compsName;
+resClust.maskB       = maskB_sica;
+resClust.hier        = hier;
+resClust.contrib     = contrib;
+resClust.timeCourses = timeCourses;
+resClust.header_sica = header_sica;
+resClust.header      = V;
+resClust.nbCompSica  = nbCompSica;
+resClust.P           = P;
+resClust.tMaps       = tMaps;
+resClust.represent   = represent;
+resClust.unicity     = unicity;
+resClust.optClust    = opt;

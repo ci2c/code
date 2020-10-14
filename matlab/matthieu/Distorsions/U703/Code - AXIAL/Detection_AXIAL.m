@@ -1,0 +1,69 @@
+function [Cg,Ima1] = Detection_AXIAL(name,cp)
+
+%     clear all;
+%     close all;
+
+    % Nom de la s�rie DICOM traitée %%
+
+%     name1='/home/matthieu/NAS/matthieu/Distorsions/GK_3T_Essai3/AX_t2_HR_3_MM_301/IM-0003-000';
+%     cp=5;
+%     name3='.dcm';    
+% 
+%     name=strcat(name1,int2str(cp),name3);
+
+    %% Récupération des informations de l'image DICOM traitée %%
+   
+    Ima1info=dicominfo(name);
+    Ima1= dicomread(Ima1info);       
+    figure (1)
+    imshow(Ima1,[],'InitialMagnification','fit');
+    
+    %% Fitrage adaptatif du bruit blanc %%
+    
+    Ima2 = wiener2(Ima1,[5 5]);
+    figure (2)
+    imshow(Ima2,[],'InitialMagnification','fit');
+
+    %% Binarisation %%
+
+%     level = graythresh(Ima2);
+%     Ima3 = im2bw(Ima2,level);
+    Ima3 = (Ima2 >= mean(Ima2(:)));
+    figure (3)
+    imshow(Ima3,'InitialMagnification','fit');
+    
+    %% Ouverture d'élément structurant disque %%
+
+    seo=strel('disk',3,0);
+    Ima4 = imopen(Ima3,seo);
+    figure (4)
+    imshow(Ima4,'InitialMagnification','fit');
+
+    %% Détection des billes : bwlabel et regionprops %%
+
+    [L,num]=bwlabel(Ima4);
+    reg=regionprops(L,'Centroid','EquivDiameter','Area','MajorAxisLength','MinorAxisLength');
+    Cg=zeros(length(reg),2);
+    Aire=zeros(length(reg),1);
+    for i=1:length(reg)           
+        Cg(i,:)=[reg(i).Centroid(1) reg(i).Centroid(2)];
+        Aire(i)=reg(i).Area;
+    end
+
+    %% Critère de sélection sur les centres de gravité %%
+
+%     moy=mean(Aire);
+%     et=std(Aire);
+%     Index = [];
+%     for i=1:size(Cg,1)
+%         if Aire(i) < 50
+%             Index = [Index;i];
+%         end
+%     end
+%     Cg(Index,:) = [];
+%     Aire(Index)=[];
+
+    figure (5)
+    imshow(Ima1,[],'InitialMagnification','fit');hold on;
+    plot(Cg(:,1),Cg(:,2),'.g','MarkerSize',12);
+    hold off

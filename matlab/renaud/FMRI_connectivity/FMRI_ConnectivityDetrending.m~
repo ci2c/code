@@ -1,0 +1,38 @@
+function FMRI_ConnectivityDetrending(whiteFile,csfFile)
+
+% Erosion White mask
+V0   = spm_vol(whiteFile); % mask
+X0   = spm_read_vols(V0);
+idx1 = find(X0(:)>.5);
+[idxx,idxy,idxz] = ind2sub(size(X0),idx1);
+idxt = find(idxx>ERODE&idxx<size(X0,1)+1-ERODE&idxy>ERODE&idxy<size(X0,2)+1-ERODE&idxz>ERODE&idxz<size(X0,3)+1-ERODE);
+
+for n1 = 1:length(idxt), 
+    if (sum(sum(sum(X0(idxx(idxt(n1))+(-ERODE:ERODE),idxy(idxt(n1))+(-ERODE:ERODE),idxz(idxt(n1))+(-ERODE:ERODE))<.5,3),2),1))>1,
+        idxt(n1)=0; 
+    end; 
+end
+idxt = idxt(idxt>0);
+idx1 = idx1(idxt);
+X1   = zeros(size(X0));X1(idx1)=1;
+V0.fname = conn_prepend('e',whiteFile);
+spm_write_vol(V0,X1);
+
+% Erosion CSF mask
+V0   = spm_vol(csfFile); % mask
+X0   = spm_read_vols(V0);
+idx1 = find(X0(:)>.5);
+[idxx,idxy,idxz] = ind2sub(size(X0),idx1);
+idxt = find(idxx>ERODE&idxx<size(X0,1)+1-ERODE&idxy>ERODE&idxy<size(X0,2)+1-ERODE&idxz>ERODE&idxz<size(X0,3)+1-ERODE);
+
+for n1 = 1:length(idxt), 
+    if (sum(sum(sum(X0(idxx(idxt(n1))+(-ERODE:ERODE),idxy(idxt(n1))+(-ERODE:ERODE),idxz(idxt(n1))+(-ERODE:ERODE))<.5,3),2),1))>1,
+        idxt(n1)=0; 
+    end; 
+end
+idxt = idxt(idxt>0);
+idx1 = idx1(idxt);
+X1   = zeros(size(X0));X1(idx1)=1;
+V0.fname = conn_prepend('e',csfFile);
+spm_write_vol(V0,X1);
+

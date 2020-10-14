@@ -1,0 +1,24 @@
+
+liste=dir('/home/fatmike/Protocoles_3T/Strokdem/Lesions/72h/');
+vox=struct('vol',{},'subjid',{});
+
+
+for i=1:length(liste)
+    
+    if liste(i).isdir == 0  % les fichiers cachés ont un isdir de 1
+        %Création du chemin
+        s=liste(i).name;
+        s2 = s(1:end-3);
+        s1=('/home/fatmike/Protocoles_3T/Strokdem/Lesions/72H');
+        file=strcat(s1,s);
+
+        %Récupération du nii et comptage
+        nii=load_nii(file);
+        count=sum(nii.img(:)~=0);
+        vox(i).vol=count;
+        vox(i).subjid=s2;
+        
+    end
+end
+
+

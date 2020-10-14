@@ -1,0 +1,107 @@
+%% Lecture de tous les volumes de lésion
+
+liste=dir('/home/fatmike/Protocoles_3T/Strokdem/Lesions/72H/');
+vox=struct('vol',{},'subjid',{},'wm',{});
+subjid_no={};
+j=1;
+k=1;
+
+for i=1:length(liste)
+    
+    if liste(i).isdir == 1  
+        
+        %Création du chemin
+        s=liste(i).name;
+        s2 = s(1:end-4);
+        s3 = '_lesions_mni152.nii';
+        s1=('/home/fatmike/Protocoles_3T/Strokdem/Lesions/72H/');
+        
+        t1 = '/home/fatmike/Protocoles_3T/Strokdem/FS5.1_T2mask/'; 
+        t3= '_M6/stats/aseg.stats'; %Pour l'instant le script prend que le M6
+        
+        file=strcat(s1,s,'/',s2,s3);
+        
+        %Test existence fichier nifti
+        E=exist(file,'file');
+        
+        if E ~= 0
+            %Récupération du nii et comptage
+            nii=load_nii(file);
+            count=sum(nii.img(:)~=0);
+            vox(k).vol=count;
+            vox(k).subjid=s2;
+           
+            %Récupération volume wm
+            file_wm = strcat(t1,s2,t3);
+            
+            
+            subjid_ok(k)={s2};
+       
+            k=k+1;
+          
+        else 
+            subjid_no(j)={s2};
+            j=j+1;
+            
+            
+        end
+    end
+end
+
+%% Récupération des valeurs des groupes
+
+%Tcog
+[a,b,c] = xlsread('/home/clement/Documents/Datas_Strokdem/Trouble_Cog_hip.xls');
+valTC=[];
+
+
+
+
+
+for i=1:length(mat_vol) 
+    
+       mat_vol(i)=vox(i).vol;
+       mat_sub(i)={(vox(i).subjid)};
+           
+end
+
+for i=1:length(b)
+   
+   index=find(ismember(mat_sub,b(i))); 
+    
+   if index ~= 0
+    valTC = [valTC;mat_vol(index)];
+   end
+    
+    
+end
+
+%NTCog
+
+clear mat_vol mat_sub
+
+[a,b,c] = xlsread('/home/clement/Documents/Datas_Strokdem/Non_Trouble_Cog_hip.xls');
+valNTC=[];
+
+
+
+
+
+for i=1:length(mat_vol) 
+    
+       mat_vol(i)=vox(i).vol;
+       mat_sub(i)={(vox(i).subjid)};
+           
+end
+
+for i=1:length(b)
+   
+   index=find(ismember(mat_sub,b(i))); 
+    
+   if index ~= 0
+    valNTC = [valTC;mat_vol(index)];
+   end
+    
+    
+end
+

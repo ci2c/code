@@ -1,0 +1,54 @@
+resClust = FMRI_ComputeStatsOnNetworks(resClust,Ns,netw)
+
+for k = 1:Ns
+    data{k} = [];
+    for i = 1:length(netw)
+        data{k} = [data{k} resClust.roi{netw(i)}.meanBold{k}];
+    end
+end
+maskClust = [];
+for i = 1:length(netw)
+    maskClust = [maskClust netw(i)*ones(1,resClust.roi{netw(i)}.N)];
+end
+    
+tS  = donnees_vers_covariance_hierarchique(data,50);
+tR  = covariance_vers_correlation(tS);
+tP  = covariance_vers_corrpar(tS);
+mtR = echant_vers_stats(tR,'moy');
+mtP = echant_vers_stats(tP,'moy');
+entropie_totale    = covariance_vers_entropie(tS);
+integration_totale = covariance_vers_integration_totale(tS);
+
+% intégration inter
+tI = zeros(length(netw),length(netw),size(tS,3));
+integration_intra = zeros(1,size(tS,3));
+for ii = 1:length(netw)
+    for jj = 1:length(netw)
+        if jj~=ii
+            AA = covariance_vers_entropie(tS(find((maskClust==netw(ii))|(maskClust==netw(jj))),find((maskClust==netw(ii))|(maskClust==netw(jj))),:));
+            tI(ii,jj,:) = covariance_vers_entropie(tS(find((maskClust==netw(ii))),find((maskClust==netw(ii))),:)) + covariance_vers_entropie(tS(find((maskClust==netw(jj))),find((maskClust==netw(jj))),:)) - AA;
+        else
+            tI(ii,jj,:) = covariance_vers_integration_totale(tS(find((maskClust==netw(ii))),find((maskClust==netw(ii))),:));
+            integration_intra = integration_intra + squeeze(tI(ii,jj,:))';
+        end
+    end
+end
+
+[mtI,vtI] = echant_vers_stats(tI,'moy','std');
+integration_matrix = tI;
+mI(:,:) = mtI;
+vI(:,:) = vtI;
+integration_inter      = integration_totale - integration_intra;
+integration_ratio(1,:) = [mean(integration_inter./integration_totale)' mean(integration_intra./integration_totale)'];
+ratio_intra_inter(1,:) = integration_intra./integration_inter;
+
+resClust.stats.mtR = mtR;
+resClust.stats.mtP = mtP;
+resClust.stats.tS = tS;
+resClust.stats.tR = tR;
+resClust.stats.entropie_totale = entropie_totale;
+resClust.stats.integration_totale = integration_totale;
+resClust.stats.integration_intra = integration_intra;
+resClust.stats.tI = tI;
+resClust.stats.integration_matrix = integration_matrix;
+resClust.stats.tI = tI;
